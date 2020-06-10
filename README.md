@@ -14,7 +14,7 @@ Project for the class "Legal DNA"
    - [Enhancing Topic-to-Essay Generation with External Commonsense
 Knowledge](https://www.aclweb.org/anthology/P19-1193.pdf)
       - use "Ideology Propagation"
-   - [Graph Engine}(https://networkx.github.io/)
+   - [Graph Engine](https://networkx.github.io/)
     
 ## Previous documents
 - [Project Outline](https://www.overleaf.com/project/5eabebaef0d47900012253bd)
