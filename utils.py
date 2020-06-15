@@ -14,5 +14,5 @@ def read_speakermap(filepath):
     return speakermap_df
 
 def merge_speech_speaker(speech_df, speaker_df):
-    speech_df = speech_df.astype({"speech_id": type(speakermap_df.loc[:,'speech_id'][0])})
+    speech_df = speech_df.astype({"speech_id": type(speaker_df.loc[:,'speech_id'][0])})
     return speaker_df.merge(speech_df, on="speech_id", how="left")
