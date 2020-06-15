@@ -20,7 +20,6 @@ class Speech:
                     subjidx = d['description'].rfind(arg0) 
                     predidx = d['description'].rfind(arg1)
                     if subjidx != -1 and predidx != -1:
-                        print(d['description'])
                         subj = re.search("(?<=ARG0: )[\w\s\'\",\.\:]*(?=])", d['description']).group(0)
                         verb = d['verb']
                         predicate = re.search("(?<=ARG1: )[\w\s\'\",\.\:]*(?=])", d['description']).group(0)
