@@ -31,7 +31,7 @@ class KnowledgeGraph:
         # return
 
     def return_node(self, phrase):
-        non_stop_phrase = ' '.join([token.text for token in self.sp(phrase) if not token.is_stop])
+        non_stop_phrase = ' '.join([token.text for token in self.sp(phrase)])
         if len(non_stop_phrase) > 1:
             phrase = non_stop_phrase
         if self.node_index is None:
@@ -90,11 +90,22 @@ if __name__ == "__main__":
                 ('a new tax credit', 'put', 'the cost of higher education')]], 'dem']
 
     G.add_edges(sample)
-    nx.draw(G.graph, with_labels=True, font_weight='bold')
+
+    options = {
+        'node_color': 'green',
+        'node_size': 200,
+        'width': 1
+    }
+    nx.draw(G.graph, with_labels=True, font_weight='bold', **options)
     plt.show()
+
     print("Output for an edge that exists: e.g. ('I','ice cream','like')")
     print(G.graph.get_edge_data('I', 'ice cream', 'like'))
     print("Output for an edge that does not exist: e.g. ('I','ice')")
     print(G.graph.get_edge_data('I', 'ice'))
     print('All edges')
     print(G.graph.edges)
+
+    G.add_edges([[[('you', 'ate', 'a lot of oranges and pizza')]], 'rep'])
+    nx.draw(G.graph, with_labels=True, font_weight='bold', **options)
+    plt.show()
