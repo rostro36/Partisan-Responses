@@ -96,8 +96,12 @@ if __name__ == "__main__":
         'node_size': 200,
         'width': 1
     }
-    nx.draw(G.graph, with_labels=True, font_weight='bold', **options)
-    plt.show()
+    pos=nx.circular_layout(G.graph)
+    edge_labels=dict([((start,finish,), predicate+', '+str(weights['weight'])+', '+str(weights['rep'])+', '+str(weights['dem'])) for start,finish,predicate,weights in G.graph.edges(data=True,keys=True)])
+    nx.draw(G.graph, pos, with_labels=True, font_weight='bold', **options)
+    nx.draw_networkx_edge_labels(G.graph, pos,edge_labels=edge_labels)
+    
+    plt.savefig("first_graph.png")
 
     print("Output for an edge that exists: e.g. ('I','ice cream','like')")
     print(G.graph.get_edge_data('I', 'ice cream', 'like'))
@@ -107,5 +111,11 @@ if __name__ == "__main__":
     print(G.graph.edges)
 
     G.add_edges([[[('you', 'ate', 'a lot of oranges and pizza')]], 'rep'])
-    nx.draw(G.graph, with_labels=True, font_weight='bold', **options)
-    plt.show()
+    
+    pos=nx.circular_layout(G.graph)
+    edge_labels=dict([((start,finish,), predicate+', '+str(weights['weight'])+', '+str(weights['rep'])+', '+str(weights['dem'])) for start,finish,predicate,weights in G.graph.edges(data=True,keys=True)])
+
+    nx.draw(G.graph, pos, with_labels=True, font_weight='bold', **options)
+    nx.draw_networkx_edge_labels(G.graph, pos,edge_labels=edge_labels)
+
+    plt.savefig("updated_graph.png")
