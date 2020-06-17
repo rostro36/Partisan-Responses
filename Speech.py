@@ -2,14 +2,15 @@ import re
 import nltk
 class Speech:
     def __init__(self, speech):
-        self.speaker = speech['lastname'] + " " + speech['firstname']
-        self.party = speech['party']
-        self.content = speech['speech'] 
+        #self.speaker = speech['lastname'] + " " + speech['firstname']
+        #self.party = speech['party']
+        self.content = speech #['speech'] 
     
     def change_comma(self):
         self.content = re.sub("\.(?=\s[a-z0-9]|\sI[\W\s])", ",", self.content)
 
     def _find_triplets(self, openinfo_result):
+        # delete modal verbs
         arg0 = "ARG0: "
         arg1 = "ARG1: "
         speech_triplet = []
@@ -32,6 +33,6 @@ class Speech:
         sents = nltk.tokenize.sent_tokenize(coref_content)
         oie_result = [oie_extractor.predict(i)['verbs'] for i in sents]
         triplets = self._find_triplets(oie_result)
-        triplets.append(self.party)
+        #triplets.append(self.party)
         return triplets
         
