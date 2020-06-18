@@ -56,8 +56,8 @@ class KnowledgeGraph:
         return None
 
     def add_edges(self, preprocess_output):
-        sentences = preprocess_output[0]
-        partisanship = preprocess_output[1]
+        sentences = preprocess_output[:-1]
+        partisanship = preprocess_output[-1]
         for sentence in sentences:
             for phrase in sentence:
                 subject = self.return_node(phrase[0])
