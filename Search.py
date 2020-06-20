@@ -4,11 +4,7 @@ import spacy
 import pickle
 from transformers import pipeline
 from sklearn.feature_extraction.text import TfidfVectorizer
-from Speech import Speech
-from KnowledgeGraph import KnowledgeGraph
-# from allennlp.predictors.predictor import Predictor
-# import allennlp_models.structured_prediction
-# import allennlp_models.coref
+
 
 class Search:
     def __init__(self, speeches):
