@@ -1,6 +1,7 @@
 .idea/*
 .DS_Store
 .ipynb_checkpoints/*
+notebooks/.ipynb_checkpoints/*
 __pycache__/*
 speech.pkl
 speeches.pickle
