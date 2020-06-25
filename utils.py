@@ -8,7 +8,8 @@ sp = spacy.load('en_core_web_sm')
 def read_full_speech(filepath):
     with open(filepath, errors="ignore") as f:
         speech = f.readlines()
-        speech = [s.replace("\n", "").replace(" | ", " ").split("|") for s in speech]#Full speech
+        speech = [s.strip() for s in speech]
+        speech = [[s[:s.find('|')], s[s.find('|') + 1:]] for s in speech]
         speech_df = pd.DataFrame(speech[1:], columns=speech[0])
     return speech_df
 
@@ -39,6 +40,7 @@ if __name__ == "__main__":
     speaker_df = read_speakermap(filepath)
 
     final_df = merge_speech_speaker(speech_df, speaker_df)
+    # print(final_df.head())
 
     small_df = final_df[:10000]
     lemmatized_speeches = small_df.copy().apply(lambda x: lemmatize(x.loc["speech"]), axis=1)
