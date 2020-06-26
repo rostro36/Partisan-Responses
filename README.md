@@ -19,6 +19,7 @@ Graph to text
 - [Enhancing Topic-to-Essay Generation with External Commonsense
 Knowledge](https://www.aclweb.org/anthology/P19-1193.pdf)
 - [Graph Writer](https://arxiv.org/pdf/1904.02342.pdf)
+- [Graph Attention Networks](https://github.com/PetarV-/GAT)
     
 ## Previous documents
 - [Project Outline](https://www.overleaf.com/project/5eabebaef0d47900012253bd)
