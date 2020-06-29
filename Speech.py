@@ -8,12 +8,18 @@ import nltk
 import re
 # import utils
 
+import torch
+
 class Speech:
     def __init__(self, speech):
         self.speaker = speech['lastname'] + " " + speech['firstname']
         self.party = speech['party']
         self.content = speech['speech']
-    
+        if torch.cuda.is_available():
+            self.cuda_device = 0 #TODO: is there a non hard-code way?
+        else:
+            self.cuda_device = -1
+        
     def change_comma(self):
         """
         Replace improper period to comma
@@ -48,8 +54,14 @@ class Speech:
                             sent_triplet.append((subj, verb, predicate))
             speech_triplet.append(sent_triplet)
         return speech_triplet
-
-    def create_triplet(self, coref_extractor, oi_extractor):
+    
+    def init_extractors(self):
+        self.open_info_extractor = Predictor.from_path("https://storage.googleapis.com/allennlp-public-models/openie-model.2020.03.26.tar.gz", 
+                                                       cuda_device=self.cuda_device)
+        self.coref_extractor = Predictor.from_path("https://storage.googleapis.com/allennlp-public-models/coref-spanbert-large-2020.02.27.tar.gz",
+                                                    cuda_device=self.cuda_device)
+            
+    def create_triplet(self):
         """
         Generate (subject, verb, object) triplets of a speech text
         Param:
@@ -59,11 +71,14 @@ class Speech:
 
         Return:
         ========
-        triplets: list
+        triplets: list, a list of triplet tuples except the last item being party string
         """
-        coref_content = coref_extractor.coref_resolved(self.content)
+        self.init_extractors()
+        coref_content = self.coref_extractor.coref_resolved(self.content)
         sents = nltk.tokenize.sent_tokenize(coref_content)
-        oie_result = [oi_extractor.predict(i)['verbs'] for i in sents]
+        sents = [{"sentence":s} for s in sents] #Format for oie batch predictor
+        oie_result = self.open_info_extractor.predict_batch_json(sents)
+        oie_result = [i['verbs'] for i in oie_result]
         triplets = self._find_triplets(oie_result)
         triplets.append(self.party)
         return triplets
@@ -73,8 +88,7 @@ if __name__ == "__main__":
     df = pd.read_pickle("speech.pkl")
     print(df.loc[0])
 
-    open_info_extractor = Predictor.from_path("https://storage.googleapis.com/allennlp-public-models/openie-model.2020.03.26.tar.gz")
-    coref_extractor = Predictor.from_path("https://storage.googleapis.com/allennlp-public-models/coref-spanbert-large-2020.02.27.tar.gz")
+    
 
     sample_speech = Speech(df.loc[0])
     sample_speech.change_comma()
