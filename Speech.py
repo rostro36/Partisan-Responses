@@ -15,31 +15,55 @@ class Speech:
         self.content = speech['speech']
     
     def change_comma(self):
+        """
+        Replace improper period to comma
+        """
         self.content = re.sub("\.(?=\s[a-z0-9]|\sI[\W\s])", ",", self.content)
 
     def _find_triplets(self, openinfo_result):
-        # delete modal verbs
+        """
+        Find one or more triplets of each sentence from allennlp OIE results
+        Param:
+        ========
+
+        Return:
+        ========
+        speech_triplets: list, a list of lists of triplet tuples (of a speech)
+        """
         arg0 = "ARG0: "
         arg1 = "ARG1: "
+        modalverbs = ["can", "could", "may", "might", "must", "shall", "should", "will", "would"]
         speech_triplet = []
         for sentence in openinfo_result:
             sent_triplet = []
             if sentence is not []:
-                for d in sentence:
-                    subjidx = d['description'].rfind(arg0) 
-                    predidx = d['description'].rfind(arg1)
-                    if subjidx != -1 and predidx != -1:
-                        subj = re.search("(?<=ARG0: )[\w\s\'\",\.\:]*(?=])", d['description']).group(0)
-                        verb = d['verb']
-                        predicate = re.search("(?<=ARG1: )[\w\s\'\",\.\:]*(?=])", d['description']).group(0)
-                        sent_triplet.append((subj, verb, predicate))
+                for d in sentence: # Extract from 'description' result of OIE
+                    verb = d['verb']
+                    if verb not in modalverbs:
+                        subjidx = d['description'].rfind(arg0) 
+                        predidx = d['description'].rfind(arg1)
+                        if subjidx != -1 and predidx != -1:
+                            subj = re.search("(?<=ARG0: )[\w\s\'\",\.\:]*(?=])", d['description']).group(0)
+                            predicate = re.search("(?<=ARG1: )[\w\s\'\",\.\:]*(?=])", d['description']).group(0)
+                            sent_triplet.append((subj, verb, predicate))
             speech_triplet.append(sent_triplet)
         return speech_triplet
 
-    def create_triplet(self, coref_extractor, oie_extractor):
+    def create_triplet(self, coref_extractor, oi_extractor):
+        """
+        Generate (subject, verb, object) triplets of a speech text
+        Param:
+        ========
+        coref_extractor: allennlp coreferece resolution predictor
+        oi_extractor: allennlp open information extractor
+
+        Return:
+        ========
+        triplets: list
+        """
         coref_content = coref_extractor.coref_resolved(self.content)
         sents = nltk.tokenize.sent_tokenize(coref_content)
-        oie_result = [oie_extractor.predict(i)['verbs'] for i in sents]
+        oie_result = [oi_extractor.predict(i)['verbs'] for i in sents]
         triplets = self._find_triplets(oie_result)
         triplets.append(self.party)
         return triplets
