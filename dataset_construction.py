@@ -65,7 +65,7 @@ def make_dataset(topic_words):
         print("finished file {}. {} pairs found".format(file, no))
 
     df = pd.DataFrame(list(zip(questions, answers, party_q, party_a)),
-                      columns=['question', 'answer', 'party_q', 'party_q'])
+                      columns=['question', 'answer', 'party_q', 'party_a'])
     df.to_pickle("dataset.pkl")
 
 
@@ -75,13 +75,19 @@ def filter_answers(df):
 
     return new_df
 
+def filter_by_party(df):
+    # keep only republican and democrat answers
+    new_df = df[df['party_a'].isin(['R', 'D'])]
+
+    return new_df
+
 
 if __name__ == "__main__":
-    topic_words = read_topic_words("../phrase_clusters/topic_phrases.txt")
-    make_dataset(topic_words)
+    # topic_words = read_topic_words("../phrase_clusters/topic_phrases.txt")
+    # make_dataset(topic_words)
 
-    df = pd.read_pickle("dataset.pkl")
+    df = pd.read_pickle("filtered_data.pkl")
 
-    df = filter_answers(df)
-    df.to_pickle("filtered_dataset.pkl")
+    df = filter_by_party(df)
+    df.to_pickle("final_data.pkl")
     print(df.head())

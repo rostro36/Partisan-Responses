@@ -8,3 +8,7 @@ speeches.pickle
 question_answer_pairs.pkl
 Untitled.ipynb
 Untitled1.ipynb
+dataset.pkl
+filtered_data.pkl
+filtered_dataset.pkl
+final_data.pkl
