@@ -1,5 +1,6 @@
 import pandas as pd
 import spacy
+import re
 
 
 sp = spacy.load('en_core_web_sm')
@@ -30,6 +31,9 @@ def get_speakermap_filename(idx):
 
 def lemmatize(phrase):
     return " ".join([word.lemma_ for word in sp(phrase)])
+
+def change_comma(speech):
+    return re.sub("\.(?=\s[a-z0-9]|\sI[\W\s])", ",", speech)
 
 
 if __name__ == "__main__":
