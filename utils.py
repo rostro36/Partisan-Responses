@@ -1,9 +1,21 @@
 import pandas as pd
 import spacy
 import re
+import torch
+from allennlp.predictors.predictor import Predictor
+import tensorflow_hub as hub
 
+if torch.cuda.is_available():
+    cuda_device = 0 #TODO: is there a non hard-code way?
+else:
+    cuda_device = -1
 
 sp = spacy.load('en_core_web_sm')
+model = hub.load("https://tfhub.dev/google/universal-sentence-encoder/4")
+open_info_extractor = Predictor.from_path("https://storage.googleapis.com/allennlp-public-models/openie-model.2020.03.26.tar.gz", 
+                                                       cuda_device=cuda_device)
+coref_extractor = Predictor.from_path("https://storage.googleapis.com/allennlp-public-models/coref-spanbert-large-2020.02.27.tar.gz",
+                                                    cuda_device=cuda_device)
 
 # Read Relevant Files
 def read_full_speech(filepath):
@@ -54,6 +66,3 @@ if __name__ == "__main__":
 
     unpickled_df = pd.read_pickle("speech.pkl")
     print(unpickled_df)
-
-
-
