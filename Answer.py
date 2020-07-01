@@ -132,4 +132,4 @@ class Answer:
             text.append(None)
             text=[text[x] for x in range(len(text)-1) if (text[x]!=text[x+1] or text[x][0]!='<')]
             return_text=return_text+' '+' '.join(text)
-        return self.phrase_corpus,self.triplet_id,return_text,[eval(x, {"self": self}) for x in self.parsed]
+        return self.phrase_corpus,self.triplet_id,return_text[1:],[eval(x, {"self": self}) for x in self.parsed]
