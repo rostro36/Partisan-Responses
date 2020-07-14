@@ -48,7 +48,7 @@ Text Generation
 ## Current documents
 - [Project Requirements](https://docs.google.com/document/d/1oli_He_bl7CpDNeu28eJwPZsJZV_k54V2JeaPlcVBsA/edit)
 - [Presentation Slides](https://onedrive.live.com/view.aspx?resid=21EE5321D6A4986A!361&ithint=file%2cpptx&authkey=!AAn1lkz6gSD4Ir8)
-- [Overleaf](https://www.overleaf.com/5123236762bxkmsnvkdqpz)
+- [Overleaf](https://www.overleaf.com/project/5f0da15855ac0b00018d532f)
 
 ## Previous documents
 - [Project Outline](https://www.overleaf.com/project/5eabebaef0d47900012253bd)
