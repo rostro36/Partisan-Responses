@@ -26,9 +26,6 @@ Data Acquisition (starting from the United States Congressional Record)
   - Remove question-answer pairs in which the answer is either too long or too short
   - Remove remaining organisational questions (e.g. Madam Speaker, may I inquire as to the time left on each side?)
 - Map each speech to the corresponding party 
-- ??? Perform error correction as speeches from earlier years contain many spelling mistakes or words not segmented properly
-  - Spelling correction
-  - Segment words
   
   
 Training 
