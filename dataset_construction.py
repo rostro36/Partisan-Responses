@@ -125,19 +125,22 @@ def lemmatize_answers(df):
     :param df: a pandas dataframe
     """
 
-    lemmas = [lemmatize(speech) for speech in tqdm(df['answer'])]
+    # lemmas = [lemmatize(speech) for speech in tqdm(df['answer'])]
+    tqdm.pandas()
+    lemmas = df['answer'].progress_apply(lambda x: lemmatize(x))
+    df['lemmatized_answer'] = lemmas
 
-    return pd.DataFrame(data={'lemmatized_answer': lemmas})
+    return df
 
 
 if __name__ == "__main__":
 
-    df = pd.read_pickle("final_data.pkl")
-    lemmas = lemmatize_answers(df)
-    lemmas.to_pickle("final_lemmas.pkl")
+    # df = pd.read_pickle("data/final_data.pkl")
+    # lemmas = lemmatize_answers(df)
+    # lemmas.to_pickle("final_lemmas.pkl")
 
     df = pd.read_pickle("final_lemmas.pkl")
-    print(df.head())
+    print(df.iloc[0])
 
 
 
