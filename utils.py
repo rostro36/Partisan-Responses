@@ -11,11 +11,11 @@ else:
     cuda_device = -1
 
 sp = spacy.load('en_core_web_sm')
-# model = hub.load("https://tfhub.dev/google/universal-sentence-encoder/4")
-# open_info_extractor = Predictor.from_path("https://storage.googleapis.com/allennlp-public-models/openie-model.2020.03.26.tar.gz",
-#                                                        cuda_device=cuda_device)
-# coref_extractor = Predictor.from_path("https://storage.googleapis.com/allennlp-public-models/coref-spanbert-large-2020.02.27.tar.gz",
-#                                                     cuda_device=cuda_device)
+model = hub.load("https://tfhub.dev/google/universal-sentence-encoder/4")
+open_info_extractor = Predictor.from_path("https://storage.googleapis.com/allennlp-public-models/openie-model.2020.03.26.tar.gz",
+                                                       cuda_device=cuda_device)
+coref_extractor = Predictor.from_path("https://storage.googleapis.com/allennlp-public-models/coref-spanbert-large-2020.02.27.tar.gz",
+                                                    cuda_device=cuda_device)
 
 def read_full_speech(filepath):
     """

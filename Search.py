@@ -14,6 +14,17 @@ class Search:
                  dem_vectorizer=None,
                  rep_tfidf= None,
                  dem_tfidf=None):
+        """
+        Creates a Search object either from scratch, using a dataframe of republican and democrat speeches,
+        or from precomputed vectorizers and tfidf matrices
+        :param speeches: dataframe of republican + democrat data
+        :param rep_speeches: dataframe with only republican data
+        :param dem_speeches: dataframe with only democrat data
+        :param rep_vectorizer: precomputed vectorizer
+        :param dem_vectorizer: precomputed vectorizer
+        :param rep_tfidf: precomputed tfidf matrix
+        :param dem_tfidf: precomputed tfidf matrix
+        """
         if speeches is not None:
             self.speeches = speeches
             self.split_by_party()
