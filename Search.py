@@ -7,8 +7,9 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 
 class Search:
-    def __init__(self, speeches):
+    def __init__(self, speeches, lemmas, tfidf_r, tfidf):
         self.speeches = speeches
+        self.lemmas = lemmas
         self.sp = spacy.load('en_core_web_sm')
         self.vectorizer = TfidfVectorizer(stop_words='english',
                                           min_df=5, max_df=.5, ngram_range=(1,2))
@@ -17,6 +18,12 @@ class Search:
 
 
     def lemmatize(self, phrase):
+        """
+        Given some text, returns the lemmatized text
+
+        :param phrase: text to lemmatize
+        :return: lemmatized text
+        """
         return " ".join([word.lemma_ for word in self.sp(phrase)])
 
     def fit_vectorizer(self):

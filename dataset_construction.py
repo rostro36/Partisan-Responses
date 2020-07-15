@@ -4,15 +4,30 @@ from nltk.stem import PorterStemmer
 from nltk.tokenize import word_tokenize
 from tqdm import tqdm
 
-from utils import change_comma, get_speeches_filename, read_speakermap, merge_speech_speaker, get_speakermap_filename
+from utils import change_comma, get_speeches_filename, read_speakermap, merge_speech_speaker, get_speakermap_filename, lemmatize
 
 
 def read_topic_words(file_name):
+    """
+    Return a set of phrases from given file
+
+    :param file_name: the name of the file
+    :return: set of phrases
+    """
     topic_phrases = pd.read_table(file_name, sep="|")
 
     return set(topic_phrases['phrase'])
 
 def make_dataset(topic_words):
+    """
+    Crates a dataframe with columns (question, answer, party_q, party_a)
+    from the hein-bound corpus by selecting the questions that are related
+    to a predefined set of topics
+
+    :param topic_words: set of phrases related to the given topics
+    :return: pandas dataframe with columns (question, answer, party_q, party_a)
+    """
+
     questions = []
     answers = []
     party_q = []
@@ -70,24 +85,59 @@ def make_dataset(topic_words):
 
 
 def filter_answers(df):
+    """
+    Given a pandas dataframe that contains a column called answer,
+    returns a new dataframe by filtering out those with answers longer
+    than 50 sentences or with a single sentence
+
+    :param df: pandas dataframe
+    :return: filtered pandas dataframe
+    """
+
     # filter out answers with a single sentence and very long answers
     new_df = df[df.apply(lambda x: len(nltk.sent_tokenize(x['answer'])) > 1 and len(nltk.sent_tokenize(x['answer'])) < 50, axis=1)]
 
     return new_df
 
 def filter_by_party(df):
+    """
+    Given a pandas dataframe that contains a column called party_a
+    (the party of the speaker who answered the question),
+    returns a new dataframe by filtering out the answers that are not
+    given by republicans or democrats
+
+    :param df: a pandas dataframe
+    :return: a new pandas dataframe
+    """
+
     # keep only republican and democrat answers
     new_df = df[df['party_a'].isin(['R', 'D'])]
 
     return new_df
 
 
+
+def lemmatize_answers(df):
+    """
+    Given a pandas dataframe that contains a column called answer,
+    returns a new dataframe with the lemmatized text from this column
+
+    :param df: a pandas dataframe
+    """
+
+    lemmas = [lemmatize(speech) for speech in tqdm(df['answer'])]
+
+    return pd.DataFrame(data={'lemmatized_answer': lemmas})
+
+
 if __name__ == "__main__":
-    # topic_words = read_topic_words("../phrase_clusters/topic_phrases.txt")
-    # make_dataset(topic_words)
 
-    df = pd.read_pickle("filtered_data.pkl")
+    df = pd.read_pickle("final_data.pkl")
+    lemmas = lemmatize_answers(df)
+    lemmas.to_pickle("final_lemmas.pkl")
 
-    df = filter_by_party(df)
-    df.to_pickle("final_data.pkl")
+    df = pd.read_pickle("final_lemmas.pkl")
     print(df.head())
+
+
+
