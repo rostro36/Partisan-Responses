@@ -32,6 +32,7 @@ def make_dataset(topic_words):
     answers = []
     party_q = []
     party_a = []
+    year = []
 
     ps = PorterStemmer()
 
@@ -59,8 +60,8 @@ def make_dataset(topic_words):
         speeches_with_questions = df_merged.loc[df_merged['speech'].str.contains('\?')]
 
         for j in tqdm(range(len(speeches_with_questions))):
-            party_q.append(speeches_with_questions.iloc[j].party)
-            party_a.append(speeches_with_questions.iloc[j].next_party)
+            # party_q.append(speeches_with_questions.iloc[j].party)
+            # party_a.append(speeches_with_questions.iloc[j].next_party)
             # change comma for both question speech and answer speech
             question = change_comma(str(speeches_with_questions.iloc[j].speech))
             answer = change_comma(str(speeches_with_questions.iloc[j].next_speech))
@@ -75,13 +76,23 @@ def make_dataset(topic_words):
                 if any(phrase in stemmed_q for phrase in topic_words) and len(quest_sents) == 1:
                     questions.append(q)
                     answers.append(answer)
+                    party_q.append(speeches_with_questions.iloc[j].party)
+                    party_a.append(speeches_with_questions.iloc[j].next_party)
+                    year.append(file)
                     no += 1
 
         print("finished file {}. {} pairs found".format(file, no))
 
-    df = pd.DataFrame(list(zip(questions, answers, party_q, party_a)),
-                      columns=['question', 'answer', 'party_q', 'party_a'])
+    df = pd.DataFrame(list(zip(questions, answers, party_q, party_a, year)),
+                      columns=['question', 'answer', 'party_q', 'party_a', 'year'])
+
+    df = filter_answers(df)
+    df = filter_by_party(df)
+    df = lemmatize_answers(df)
+
     df.to_pickle("dataset.pkl")
+
+    return df
 
 
 def filter_answers(df):
@@ -139,8 +150,13 @@ if __name__ == "__main__":
     # lemmas = lemmatize_answers(df)
     # lemmas.to_pickle("final_lemmas.pkl")
 
-    df = pd.read_pickle("final_lemmas.pkl")
+    # df = pd.read_pickle("final_lemmas.pkl")
+    # print(df.iloc[0])
+    topic_words = read_topic_words("../phrase_clusters/topic_phrases.txt")
+    df = make_dataset(topic_words)
+    print(df.head())
     print(df.iloc[0])
+
 
 
 
