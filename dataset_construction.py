@@ -3,6 +3,7 @@ import nltk
 from nltk.stem import PorterStemmer
 from nltk.tokenize import word_tokenize
 from tqdm import tqdm
+import spacy
 
 from utils import change_comma, get_speeches_filename, read_speakermap, merge_speech_speaker, get_speakermap_filename, lemmatize
 
@@ -94,6 +95,80 @@ def make_dataset(topic_words):
 
     return df
 
+def make_search_dataset():
+    """
+    Creates a pandas dataframe with columns speech, party, stemmed_speech, year
+    from the full hein-bound. Speeches that are too short or too long are filtered out.
+    Speeches that are neither republican nor democrat are also filtered out
+
+    :return: pandas dataframe for search
+    """
+    speeches = []
+    stemmed_speeches = []
+    party = []
+    year = []
+
+    #sp = spacy.load('en_core_web_sm')
+    ps = PorterStemmer()
+
+    for i in range(43, 112):
+        file = str(i)
+        if i < 100:
+            file = '0{}'.format(i)
+
+        no = 0
+
+        # read speeches
+        with open("../hein-bound/{}".format(get_speeches_filename(file)), errors="ignore") as f:
+            speech = f.readlines()
+            speech = [s.strip() for s in speech]
+            speech = [[s[:s.find('|')], s[s.find('|') + 1:]] for s in speech]
+            speech_df = pd.DataFrame(speech[1:], columns=speech[0])
+
+        # read speakermap
+        speaker_df = read_speakermap("../hein-bound/{}".format(get_speakermap_filename(file)))
+
+        # merge speeches
+        final_df = merge_speech_speaker(speech_df, speaker_df)
+        print("Number of speeches: {}".format(len(final_df)))
+
+        for j in tqdm(range(len(final_df))):
+            # skip row if not republican or democrat
+            if final_df.iloc[j].party not in ['R', 'D']:
+                continue
+
+            # fix comma issues due to ocr
+            speech = change_comma(str(final_df.iloc[j].speech))
+            sents = nltk.sent_tokenize(speech)
+
+            # skip row if too short or too long speech
+            if len(sents) < 3 or len(sents) > 50:
+                continue
+
+            #lemmatized_speech = " ".join([word.lemma_ for word in sp(speech)])
+            words = word_tokenize(speech)
+            stemmed_speech = " ".join([ps.stem(w.lower()) for w in words])
+            speeches.append(speech)
+            stemmed_speeches.append(stemmed_speech)
+            party.append(final_df.iloc[j].party)
+            year.append(file)
+            no += 1
+
+        print("finished file {}. {} speeches found".format(file, no))
+
+        df = pd.DataFrame(list(zip(speeches, party, stemmed_speeches, year)),
+                      columns=['speech', 'party', 'stemmed_speech', 'year'])
+
+        df.to_pickle("search_dataset.pkl")
+
+    # save final dataset
+    df = pd.DataFrame(list(zip(speeches, party, stemmed_speeches, year)),
+                      columns=['speech', 'party', 'stemmed_speech', 'year'])
+
+    df.to_pickle("final_search_dataset.pkl")
+
+    return df
+
 
 def filter_answers(df):
     """
@@ -152,8 +227,7 @@ if __name__ == "__main__":
 
     # df = pd.read_pickle("final_lemmas.pkl")
     # print(df.iloc[0])
-    topic_words = read_topic_words("../phrase_clusters/topic_phrases.txt")
-    df = make_dataset(topic_words)
+    df = make_search_dataset()
     print(df.head())
     print(df.iloc[0])
 
