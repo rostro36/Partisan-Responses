@@ -165,7 +165,7 @@ def make_search_dataset():
     df = pd.DataFrame(list(zip(speeches, party, stemmed_speeches, year)),
                       columns=['speech', 'party', 'stemmed_speech', 'year'])
 
-    df.to_pickle("final_search_dataset.pkl")
+    df.to_pickle("search_dataset_final.pkl")
 
     return df
 
@@ -227,9 +227,12 @@ if __name__ == "__main__":
 
     # df = pd.read_pickle("final_lemmas.pkl")
     # print(df.iloc[0])
-    df = make_search_dataset()
-    print(df.head())
-    print(df.iloc[0])
+    # df = make_search_dataset()
+    # print(df.head())
+    # print(df.iloc[0])
+    final_speech = pd.read_pickle("search_dataset_small.pkl")
+
+    # final_speech.to_pickle("search_dataset_final.pkl")
 
 
 

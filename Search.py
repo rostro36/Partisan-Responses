@@ -44,7 +44,7 @@ class Search:
             # fit vectorizer
             self.rep_vectorizer = TfidfVectorizer(stop_words='english',
                                           min_df=5, max_df=.5, ngram_range=(1,2))
-            self.rep_tfidf = self.rep_vectorizer.fit_transform(self.rep['lemmatized_answer'])
+            self.rep_tfidf = self.rep_vectorizer.fit_transform(self.rep['stemmed_speech'])
 
         if dem_vectorizer is not None:
             # load existing vectorizer and tfidf
@@ -55,7 +55,7 @@ class Search:
             # fit vectorizer
             self.dem_vectorizer = TfidfVectorizer(stop_words='english',
                                           min_df=5, max_df=.5, ngram_range=(1,2))
-            self.dem_tfidf = self.dem_vectorizer.fit_transform(self.dem['lemmatized_answer'])
+            self.dem_tfidf = self.dem_vectorizer.fit_transform(self.dem['stemmed_speech'])
 
 
     def split_by_party(self):
@@ -64,8 +64,8 @@ class Search:
         it splits it into 2 dataframes depending on party
         :return:
         """
-        self.rep = self.speeches[self.speeches['party_a'] == 'R']
-        self.dem = self.speeches[self.speeches['party_a'] == 'D']
+        self.rep = self.speeches[self.speeches['party'] == 'R']
+        self.dem = self.speeches[self.speeches['party'] == 'D']
 
         print("republican speeches: {}".format(len(self.rep)))
         print("democrat speeches: {}".format(len(self.dem)))
