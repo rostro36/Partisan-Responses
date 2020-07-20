@@ -4,6 +4,9 @@ import spacy
 import pickle
 from transformers import pipeline
 from sklearn.feature_extraction.text import TfidfVectorizer
+import nltk
+from nltk.tokenize import word_tokenize
+from nltk.stem import PorterStemmer
 
 
 class Search:
@@ -71,14 +74,15 @@ class Search:
         print("democrat speeches: {}".format(len(self.dem)))
 
 
-    def lemmatize(self, phrase):
+    def stem_phrase(self, phrase):
         """
-        Given some text, returns the lemmatized text
+        Given some text, returns the stemmed text
 
-        :param phrase: text to lemmatize
-        :return: lemmatized text
+        :param phrase: text to stem
+        :return: stemmed text
         """
-        return " ".join([word.lemma_ for word in self.sp(phrase)])
+        ps = PorterStemmer()
+        return " ".join([ps.stem(w.lower()) for w in word_tokenize(phrase)])
 
 
     def search(self, question, party, topk=10):
@@ -95,12 +99,12 @@ class Search:
             raise Exception("The party can only be R or D")
         if party == 'R':
             # transform query
-            query = self.rep_vectorizer.transform([self.lemmatize(question)])
+            query = self.rep_vectorizer.transform([self.stem_phrase(question)])
             # sort based on cosine similarity
             scores = (self.rep_tfidf * query.T).toarray()
         else:
             # transform query
-            query = self.dem_vectorizer.transform([self.lemmatize(question)])
+            query = self.dem_vectorizer.transform([self.stem_phrase(question)])
             # sort based on cosine similarity
             scores = (self.dem_tfidf * query.T).toarray()
 
@@ -130,7 +134,7 @@ class Search:
 
 
 if __name__ == "__main__":
-    # speeches = pd.read_pickle("data/final_lemmas.pkl")
+    # speeches = pd.read_pickle("data/final_ss.pkl")
     #
     # search = Search(speeches=speeches)
     # print("----- Saving data -----")
