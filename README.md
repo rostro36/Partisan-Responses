@@ -1,5 +1,18 @@
 # Partisan-Responses
 Project for the class "Legal DNA"
+## Notebooks in the end
+- Setup (README) wget/cloning
+- Filter Dataset to get questions 
+- Create tf-idf
+- Create GraphWriter data
+- T5 Question Generation
+- BERT training
+- GraphWriter training
+- Run with question
+  - Search results
+  - Knowledge graph
+  - GPT-2 & the partisanship
+  - GraphWriter
 ## Important papers
 Building Knowledge Graph
 - [Opinion-aware Knowledge Graph for Political Ideology Detection](https://www.ijcai.org/Proceedings/2017/0510.pdf)
