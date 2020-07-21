@@ -1,11 +1,11 @@
 # Partisan-Responses
 Project for the class "Legal DNA"
 ## Notebooks in the end
-- Setup (README) wget/cloning
+- ~Setup (README) wget/cloning~ maybe give a shortcut without downloading hein-bound
 - Filter Dataset to get questions 
 - Create tf-idf
 - Create GraphWriter data
-- T5 Question Generation
+- ~T5 Question Generation~
 - BERT training
 - GraphWriter training
 - Run with question
