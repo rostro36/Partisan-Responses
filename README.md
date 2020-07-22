@@ -4,10 +4,10 @@ Project for the class "Legal DNA"
 - ~Setup (README) wget/cloning~ maybe give a shortcut without downloading hein-bound
 - Filter Dataset to get questions 
 - Create tf-idf
-- Create GraphWriter data
+- ~Create GraphWriter data~
 - ~T5 Question Generation~
-- BERT training
-- GraphWriter training
+- ~RoBERTa training~ (On second try with lower lr)
+- ~GraphWriter training~
 - Run with question
   - Search results
   - Knowledge graph
