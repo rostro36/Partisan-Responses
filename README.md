@@ -1,5 +1,18 @@
 # Partisan-Responses
 Project for the class "Legal DNA"
+## Notebooks in the end
+- ~Setup (README) wget/cloning~ maybe give a shortcut without downloading hein-bound
+- Filter Dataset to get questions 
+- Create tf-idf
+- Create GraphWriter data
+- ~T5 Question Generation~
+- BERT training
+- GraphWriter training
+- Run with question
+  - Search results
+  - Knowledge graph
+  - GPT-2 & the partisanship
+  - GraphWriter
 ## Important papers
 Building Knowledge Graph
 - [Opinion-aware Knowledge Graph for Political Ideology Detection](https://www.ijcai.org/Proceedings/2017/0510.pdf)
@@ -43,4 +56,5 @@ Text Generation
 
 ## Current documents
 - [Project Requirements](https://docs.google.com/document/d/1oli_He_bl7CpDNeu28eJwPZsJZV_k54V2JeaPlcVBsA/edit)
-- [Overleaf](https://www.overleaf.com/project/5f0da15855ac0b00018d532f)
+- [Project Outline](https://www.overleaf.com/project/5f0da15855ac0b00018d532f)
+- [Draft](https://www.overleaf.com/project/5f0da15855ac0b00018d532f)
