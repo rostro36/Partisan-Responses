@@ -80,6 +80,18 @@ class KnowledgeGraph:
                     elif partisanship == 'R':
                         rep = 1
                 self.graph.add_edge(subject, objekt, key=predicate, weight=weight, D=dem, R=rep)
+    def draw(self, name):
+        options = {
+        'node_color': 'green',
+        'node_size': 200,
+        'width': 1
+        }
+        pos=nx.circular_layout(self.graph)
+        edge_labels=dict([((start,finish,), predicate+', '+str(weights['weight'])+', '+str(weights['R'])+', '+str(weights['D'])) for start,finish,predicate,weights in self.graph.edges(data=True,keys=True)])
+        nx.draw(self.graph, pos, with_labels=True, font_weight='bold', **options)
+        nx.draw_networkx_edge_labels(self.graph, pos,edge_labels=edge_labels)
+        plt.savefig(str(name)+'.png')
+        
 
 
 if __name__ == "__main__":
