@@ -91,6 +91,7 @@ class KnowledgeGraph:
         nx.draw(self.graph, pos, with_labels=True, font_weight='bold', **options)
         nx.draw_networkx_edge_labels(self.graph, pos,edge_labels=edge_labels)
         plt.savefig(str(name)+'.png')
+        plt.show()
         
 
 
