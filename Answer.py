@@ -135,7 +135,7 @@ class Answer:
             return_text=return_text+' '+' '.join(text)
         return self.phrase_corpus,self.triplet_id,return_text[1:],[eval(x, {"self": self}) for x in self.parsed]
 
-        def create_test(self,verb_dict, verb_list):
+    def create_test(self,verb_dict, verb_list):
         self.change_comma()
         triplets = self.create_oieresult()
         return_text=""
