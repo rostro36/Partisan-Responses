@@ -3,19 +3,20 @@ import spacy
 import networkx as nx
 import matplotlib.pyplot as plt
 import tensorflow_hub as hub
+import utils
+import base64
 
 class KnowledgeGraph:
-    def __init__(self):
+    def __init__(self, name):
         self.phrase_corpus = []
         self.graph = nx.MultiDiGraph()
-        self.sp = spacy.load('en_core_web_sm')
-        self.model = hub.load("https://tfhub.dev/google/universal-sentence-encoder/4")
         self.phrase_corpus_length = 1
         self.node_index = None
         self.distance_threshold = 0.5
+        self.name=base64.urlsafe_b64encode(name)[:15]
 
     def lemmatize(self, phrase):
-        return " ".join([word.lemma_ for word in self.sp(phrase)])
+        return " ".join([word.lemma_ for word in utils.sp(phrase)])
 
     def add_node(self, phrase):
         self.phrase_corpus_length +=  1
@@ -25,18 +26,18 @@ class KnowledgeGraph:
         self.node_index = hnswlib.Index('cosine', 512)
         self.node_index.init_index(self.phrase_corpus_length, ef_construction=200, M=48, random_seed=36)
         if self.phrase_corpus_length > 2:
-            self.node_index.load_index("node_index", max_elements=self.phrase_corpus_length)
-        self.node_index.add_items(self.model([phrase]))
-        self.node_index.save_index("node_index")
+            self.node_index.load_index(name, max_elements=self.phrase_corpus_length)
+        self.node_index.add_items(utils.model([phrase]))
+        self.node_index.save_index(name)
         # return
 
     def return_node(self, phrase):
-        non_stop_phrase = ' '.join([token.text for token in self.sp(phrase)])
+        non_stop_phrase = ' '.join([token.text for token in utils.sp(phrase)])
         if len(non_stop_phrase) > 1:
             phrase = non_stop_phrase
         if self.node_index is None:
             self.add_node(phrase)
-        nearest_neighbor = self.node_index.knn_query(self.model([phrase]))
+        nearest_neighbor = self.node_index.knn_query(utils.model([phrase]))
         if nearest_neighbor != []:
             closest_neighbor, closest_distance = nearest_neighbor
         if closest_neighbor[0] == []:
@@ -80,7 +81,7 @@ class KnowledgeGraph:
                     elif partisanship == 'R':
                         rep = 1
                 self.graph.add_edge(subject, objekt, key=predicate, weight=weight, D=dem, R=rep)
-    def draw(self, name):
+    def draw(self):
         options = {
         'node_color': 'green',
         'node_size': 200,
@@ -90,7 +91,7 @@ class KnowledgeGraph:
         edge_labels=dict([((start,finish,), predicate+', '+str(weights['weight'])+', '+str(weights['R'])+', '+str(weights['D'])) for start,finish,predicate,weights in self.graph.edges(data=True,keys=True)])
         nx.draw(self.graph, pos, with_labels=True, font_weight='bold', **options)
         nx.draw_networkx_edge_labels(self.graph, pos,edge_labels=edge_labels)
-        plt.savefig(str(name)+'.png')
+        plt.savefig(self.name+'.png')
         plt.show()
         
 
