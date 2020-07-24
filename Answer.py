@@ -169,8 +169,9 @@ class Answer:
                 if len(objekt)==0:
                     continue
                 if verb not in verb_dict.keys():
+                    print(verb)
                     continue #if verb does not exist in verb_dict it can not be used to create
-
+                verb_id=verb_dict[verb]
                 max_id=len(self.phrase_corpus)
                 subject_id,subject=self.deduplicate(subject)
                 if subject_id==max_id:
