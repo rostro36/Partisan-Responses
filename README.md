@@ -1,18 +1,5 @@
 # Partisan-Responses
-Project for the class "Legal DNA"
-## Notebooks in the end
-- ~Setup (README) wget/cloning~ maybe give a shortcut without downloading hein-bound
-- Filter Dataset to get questions 
-- Create tf-idf
-- ~Create GraphWriter data~
-- ~T5 Question Generation~
-- ~RoBERTa training~ (On second try with lower lr)
-- ~GraphWriter training~
-- Run with question
-  - Search results
-  - Knowledge graph
-  - GPT-2 & the partisanship
-  - GraphWriter
+Project for the class "Legal DNA", still clean-up needed.
 ## Important papers
 Building Knowledge Graph
 - [Opinion-aware Knowledge Graph for Political Ideology Detection](https://www.ijcai.org/Proceedings/2017/0510.pdf)
@@ -53,8 +40,3 @@ Text Generation
 - Given a question and a party (R/D), extract the top k most relevant speeches from the corpus using TF-IDF
 - Construct a knowledge graph (using the same procedure as before) from the extracted speeches
 - Feed the question and the knowledge graph to the trained model to produce an answer
-
-## Current documents
-- [Project Requirements](https://docs.google.com/document/d/1oli_He_bl7CpDNeu28eJwPZsJZV_k54V2JeaPlcVBsA/edit)
-- [Project Outline](https://www.overleaf.com/project/5f0da15855ac0b00018d532f)
-- [Draft](https://www.overleaf.com/project/5f0da15855ac0b00018d532f)
