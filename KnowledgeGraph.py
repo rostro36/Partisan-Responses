@@ -13,7 +13,7 @@ class KnowledgeGraph:
         self.phrase_corpus_length = 1
         self.node_index = None
         self.distance_threshold = 0.5
-        self.name=base64.urlsafe_b64encode(name)[:15]
+        self.name=base64.urlsafe_b64encode(name.encode("utf-8"))[:15]
 
     def lemmatize(self, phrase):
         return " ".join([word.lemma_ for word in utils.sp(phrase)])
