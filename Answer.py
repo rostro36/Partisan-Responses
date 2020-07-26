@@ -1,6 +1,4 @@
 import pandas as pd
-# import allennlp_models.structured_prediction
-# import allennlp_models.coref
 import nltk
 import re
 import utils
@@ -168,6 +166,7 @@ class Answer:
                     continue
                 if len(objekt)==0:
                     continue
+                verb=verb.upper()
                 if verb not in verb_dict.keys():
                     print(verb)
                     continue #if verb does not exist in verb_dict it can not be used to create
