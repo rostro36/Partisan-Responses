@@ -13,7 +13,7 @@ class KnowledgeGraph:
         self.phrase_corpus_length = 1
         self.node_index = None
         self.distance_threshold = 0.5
-        self.name=base64.urlsafe_b64encode(name.encode("utf-8"))[:15]
+        self.name=str(base64.urlsafe_b64encode(name.encode("utf-8")))[:15]
 
     def lemmatize(self, phrase):
         return " ".join([word.lemma_ for word in utils.sp(phrase)])
@@ -26,10 +26,9 @@ class KnowledgeGraph:
         self.node_index = hnswlib.Index('cosine', 512)
         self.node_index.init_index(self.phrase_corpus_length, ef_construction=200, M=48, random_seed=36)
         if self.phrase_corpus_length > 2:
-            self.node_index.load_index(name, max_elements=self.phrase_corpus_length)
+            self.node_index.load_index(self.name, max_elements=self.phrase_corpus_length)
         self.node_index.add_items(utils.model([phrase]))
-        self.node_index.save_index(name)
-        # return
+        self.node_index.save_index(self.name)
 
     def return_node(self, phrase):
         non_stop_phrase = ' '.join([token.text for token in utils.sp(phrase)])
@@ -81,7 +80,7 @@ class KnowledgeGraph:
                     elif partisanship == 'R':
                         rep = 1
                 self.graph.add_edge(subject, objekt, key=predicate, weight=weight, D=dem, R=rep)
-    def draw(self):
+    def draw(self, name):
         options = {
         'node_color': 'green',
         'node_size': 200,
@@ -91,7 +90,7 @@ class KnowledgeGraph:
         edge_labels=dict([((start,finish,), predicate+', '+str(weights['weight'])+', '+str(weights['R'])+', '+str(weights['D'])) for start,finish,predicate,weights in self.graph.edges(data=True,keys=True)])
         nx.draw(self.graph, pos, with_labels=True, font_weight='bold', **options)
         nx.draw_networkx_edge_labels(self.graph, pos,edge_labels=edge_labels)
-        plt.savefig(self.name+'.png')
+        plt.savefig(name+'.png')
         plt.show()
         
 
