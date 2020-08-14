@@ -86,7 +86,7 @@ class KnowledgeGraph:
         'node_size': 200,
         'width': 1
         }
-        pos=nx.kamada_kawai_layout(self.graph)
+        pos=nx.shell_layout(self.graph)
         edge_labels=dict([((start,finish,), predicate+', '+str(weights['weight'])+', '+str(weights['R'])+', '+str(weights['D'])) for start,finish,predicate,weights in self.graph.edges(data=True,keys=True)])
         nx.draw(self.graph, pos, with_labels=True, font_weight='bold', **options)
         nx.draw_networkx_edge_labels(self.graph, pos,edge_labels=edge_labels)
