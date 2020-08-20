@@ -1,9 +1,13 @@
 import pandas as pd
 import spacy
 import re
+import nltk
+from nltk.stem import PorterStemmer
+from nltk.tokenize import word_tokenize
 import torch
 from allennlp.predictors.predictor import Predictor
 import tensorflow_hub as hub
+from tqdm import tqdm
 
 if torch.cuda.is_available():
     cuda_device = 0 #TODO: is there a non hard-code way?
@@ -82,22 +86,48 @@ def change_comma(speech):
     """
     return re.sub("\.(?=\s[a-z0-9]|\sI[\W\s])", ",", speech)
 
+def add_stemmed_col_to_df(df, speeches_col, stemmed_col):
+    """
+    :param df: dataframe containing at least a column with speeches
+    :return: new dataframe, with added column for stemmed speeches
+    """
+
+    tqdm.pandas()
+    ps = PorterStemmer()
+
+    stemmed = df[speeches_col].progress_apply(lambda x: " ".join([ps.stem(w.lower()) for w in word_tokenize(x)]))
+    df[stemmed_col] = stemmed
+
+    return df
+
 
 if __name__ == "__main__":
-    filepath = "../hein-bound/{}".format(get_speeches_filename(111))
-    speech_df = read_full_speech(filepath)
+    # filepath = "../hein-bound/{}".format(get_speeches_filename(111))
+    # speech_df = read_full_speech(filepath)
+    #
+    # filepath = "../hein-bound/{}".format(get_speakermap_filename(111))
+    # speaker_df = read_speakermap(filepath)
+    #
+    # final_df = merge_speech_speaker(speech_df, speaker_df)
+    # # print(final_df.head())
+    #
+    # small_df = final_df[:10000]
+    # lemmatized_speeches = small_df.copy().apply(lambda x: lemmatize(x.loc["speech"]), axis=1)
+    # small_df.insert(1, "lemmatized_speech", lemmatized_speeches)
+    #
+    # small_df.to_pickle("speech.pkl")
+    #
+    # unpickled_df = pd.read_pickle("speech.pkl")
+    # print(unpickled_df)
 
-    filepath = "../hein-bound/{}".format(get_speakermap_filename(111))
-    speaker_df = read_speakermap(filepath)
+    speeches = pd.read_pickle("all_speech_sentence_filtered.pkl")
 
-    final_df = merge_speech_speaker(speech_df, speaker_df)
-    # print(final_df.head())
+    new_speeches = add_stemmed_col_to_df(speeches, "Questions", "Stemmed")
 
-    small_df = final_df[:10000]
-    lemmatized_speeches = small_df.copy().apply(lambda x: lemmatize(x.loc["speech"]), axis=1)
-    small_df.insert(1, "lemmatized_speech", lemmatized_speeches)
+    new_speeches.to_pickle("all_speech_filtered_stemmed.pkl")
+    new_speeches = pd.read_pickle("all_speech_filtered_stemmed.pkl")
+    print(new_speeches)
+    print(new_speeches.iloc[0].Questions)
+    print(new_speeches.iloc[0].Stemmed)
 
-    small_df.to_pickle("speech.pkl")
 
-    unpickled_df = pd.read_pickle("speech.pkl")
-    print(unpickled_df)
