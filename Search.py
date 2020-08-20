@@ -37,7 +37,6 @@ class Search:
             self.rep = rep_speeches
             self.dem = dem_speeches
 
-        self.sp = spacy.load('en_core_web_sm')
         if rep_vectorizer is not None:
             # load existing vectorizer and tfidf
             self.rep_vectorizer = rep_vectorizer
@@ -46,8 +45,8 @@ class Search:
         else:
             # fit vectorizer
             self.rep_vectorizer = TfidfVectorizer(stop_words='english',
-                                          min_df=5, max_df=.5, ngram_range=(1,2))
-            self.rep_tfidf = self.rep_vectorizer.fit_transform(self.rep['stemmed_speech'])
+                                          min_df=5, max_df=.5, ngram_range=(1,2), max_features=1000000)
+            self.rep_tfidf = self.rep_vectorizer.fit_transform(self.rep['Stemmed'])
 
         if dem_vectorizer is not None:
             # load existing vectorizer and tfidf
@@ -57,8 +56,8 @@ class Search:
         else:
             # fit vectorizer
             self.dem_vectorizer = TfidfVectorizer(stop_words='english',
-                                          min_df=5, max_df=.5, ngram_range=(1,2))
-            self.dem_tfidf = self.dem_vectorizer.fit_transform(self.dem['stemmed_speech'])
+                                          min_df=5, max_df=.5, ngram_range=(1,2), max_features=1000000)
+            self.dem_tfidf = self.dem_vectorizer.fit_transform(self.dem['Stemmed'])
 
 
     def split_by_party(self):
@@ -67,8 +66,8 @@ class Search:
         it splits it into 2 dataframes depending on party
         :return:
         """
-        self.rep = self.speeches[self.speeches['party'] == 'R']
-        self.dem = self.speeches[self.speeches['party'] == 'D']
+        self.rep = self.speeches[self.speeches['Party'] == 'R']
+        self.dem = self.speeches[self.speeches['Party'] == 'D']
 
         print("republican speeches: {}".format(len(self.rep)))
         print("democrat speeches: {}".format(len(self.dem)))
@@ -85,7 +84,7 @@ class Search:
         return " ".join([ps.stem(w.lower()) for w in word_tokenize(phrase)])
 
 
-    def search(self, question, party, topk=10):
+    def search(self, question, party, topk=1):
         """
         Given a question and a party, returns the most relevant
         speeches in the dataset
@@ -129,18 +128,18 @@ class Search:
         data['rep_tfidf'] = self.rep_tfidf
         data['dem_tfidf'] = self.dem_tfidf
 
-        with open("data/tfidf_data.pkl", 'wb') as file:
+        with open("tfidf_data.pkl", 'wb') as file:
             pickle.dump(data, file)
 
 
 if __name__ == "__main__":
-    # speeches = pd.read_pickle("data/final_ss.pkl")
-    #
-    # search = Search(speeches=speeches)
-    # print("----- Saving data -----")
-    # search.save_data()
+    speeches = pd.read_pickle("all_speech_filtered_stemmed.pkl")
 
-    with open("data/tfidf_data.pkl", "rb") as file:
+    search = Search(speeches=speeches)
+    print("----- Saving data -----")
+    search.save_data()
+
+    with open("tfidf_data.pkl", "rb") as file:
         data = pickle.load(file)
 
     # print(data['rep_speeches'])
@@ -155,7 +154,7 @@ if __name__ == "__main__":
     party = 'D'
     results = search.search(question, party, topk=5)
     print("----- Search Done -----")
-    for result in results['answer']:
+    for result in results['Questions']:
         print(result)
 
     qa_pipeline = pipeline("question-answering")
@@ -163,7 +162,7 @@ if __name__ == "__main__":
     question_df = pd.DataFrame.from_records([{
         'question': question,
         'context': res
-    } for res in results["answer"]])
+    } for res in results["Questions"]])
 
     preds = qa_pipeline(question_df.to_dict('records'))
     answer_df = pd.DataFrame.from_records(preds).sort_values(by="score", ascending=False)
