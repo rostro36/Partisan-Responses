@@ -39,8 +39,11 @@ class Answer:
         triplets.append(self.party)
         return triplets
     
+    def create_coref(self):
+        return utils.coref_extractor.coref_resolved(self.content)
+        
     def create_oieresult(self):
-        coref_content = utils.coref_extractor.coref_resolved(self.content)
+        coref_content=self.content
         sents = nltk.tokenize.sent_tokenize(coref_content)
         sents = [{"sentence":s} for s in sents] #Format for oie batch predictor
         oie_result = utils.open_info_extractor.predict_batch_json(sents)
