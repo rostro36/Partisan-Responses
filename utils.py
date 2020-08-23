@@ -102,31 +102,13 @@ def add_stemmed_col_to_df(df, speeches_col, stemmed_col):
 
 
 if __name__ == "__main__":
-    # filepath = "../hein-bound/{}".format(get_speeches_filename(111))
-    # speech_df = read_full_speech(filepath)
-    #
-    # filepath = "../hein-bound/{}".format(get_speakermap_filename(111))
-    # speaker_df = read_speakermap(filepath)
-    #
-    # final_df = merge_speech_speaker(speech_df, speaker_df)
-    # # print(final_df.head())
-    #
-    # small_df = final_df[:10000]
-    # lemmatized_speeches = small_df.copy().apply(lambda x: lemmatize(x.loc["speech"]), axis=1)
-    # small_df.insert(1, "lemmatized_speech", lemmatized_speeches)
-    #
-    # small_df.to_pickle("speech.pkl")
-    #
-    # unpickled_df = pd.read_pickle("speech.pkl")
-    # print(unpickled_df)
-
     speeches = pd.read_pickle("all_speech_sentence_filtered.pkl")
-
     new_speeches = add_stemmed_col_to_df(speeches, "Questions", "Stemmed")
-
     new_speeches.to_pickle("all_speech_filtered_stemmed.pkl")
+
+    # check the new dataset
     new_speeches = pd.read_pickle("all_speech_filtered_stemmed.pkl")
-    print(new_speeches)
+    print(len(new_speeches))
     print(new_speeches.iloc[0].Questions)
     print(new_speeches.iloc[0].Stemmed)
 
