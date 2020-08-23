@@ -29,7 +29,6 @@ class Answer:
         ========
         coref_extractor: allennlp coreferece resolution predictor
         oi_extractor: allennlp open information extractor
-
         Return:
         ========
         triplets: list, a list of triplet tuples except the last item being party string
@@ -75,8 +74,8 @@ class Answer:
         return self.phrase_corpus.index(return_phrase),return_phrase
 
     def create_training(self,verb_dict, verb_list):
-        #self.change_comma()
-        #triplets = self.create_oieresult()
+        self.change_comma()
+        triplets = self.create_oieresult()
         return_text=""
         for sentence in triplets:
             if len(sentence)==0:
@@ -169,7 +168,7 @@ class Answer:
                     continue
                 if len(objekt)==0:
                     continue
-                verb=verb.upper()
+                verb = verb.upper()
                 if verb not in verb_dict.keys():
                     print(verb)
                     continue #if verb does not exist in verb_dict it can not be used to create
