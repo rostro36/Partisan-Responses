@@ -1,5 +1,9 @@
 # Partisan-Responses
 Project for the class "Legal DNA".
+## Dataset (in-progress)
+- [Presidency Project](https://www.presidency.ucsb.edu/)
+- [Gallup Topic Questions](https://news.gallup.com/poll/trends.aspx#P)
+
 ## Run the code
 Follow through the numbered notebooks. Starting at 06 only the dataset from all speeches since 2000 gets executed.
 ## Important papers
