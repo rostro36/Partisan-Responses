@@ -21,70 +21,10 @@ open_info_extractor = Predictor.from_path("https://storage.googleapis.com/allenn
 coref_extractor = Predictor.from_path("https://storage.googleapis.com/allennlp-public-models/coref-spanbert-large-2020.02.27.tar.gz",
                                                     cuda_device=cuda_device)
 
-def read_full_speech(filepath):
-    """
-    Load into a dataframe the data from a text file in hein-bound
-    :param filepath: filepath
-    :return: speeches dataframe
-    """
-    with open(filepath, errors="ignore") as f:
-        speech = f.readlines()
-        speech = [s.strip() for s in speech]
-        speech = [[s[:s.find('|')], s[s.find('|') + 1:]] for s in speech]
-        speech_df = pd.DataFrame(speech[1:], columns=speech[0])
-    return speech_df
-
-def read_speakermap(filepath):
-    """
-    Load into a dataframe the speaker map from a text file in hein-bound
-    :param filepath: filepath
-    :return: speakermap dataframe
-    """
-    with open(filepath, errors="ignore") as f:
-        speakermap_df = pd.read_table(f, delimiter = "|")
-    return speakermap_df
-
-def merge_speech_speaker(speech_df, speaker_df):
-    """
-    Merge a dataframe containing speeches with one containing the speakermap
-    :param speech_df: speeches dataframe
-    :param speaker_df: speakermap dataframe
-    :return: merged dataframe
-    """
-    speech_df = speech_df.astype({"speech_id": type(speaker_df.loc[:,'speech_id'][0])})
-    return speaker_df.merge(speech_df, on="speech_id", how="left")
-
-def get_speeches_filename(idx):
-    """
-    Returns the name of the speeches file given an index
-    :param idx: index
-    :return: filename
-    """
-    return "speeches_{}.txt".format(idx)
-
-def get_speakermap_filename(idx):
-    """
-    Returns the name of the speakermap file given an index
-    :param idx: index
-    :return: filename
-    """
-    return "{}_SpeakerMap.txt".format(idx)
-
-def lemmatize(phrase):
-    """
-    Given some text, it returns the lemmatized text
-    :param phrase: text
-    :return: lemmatized text
-    """
-    return " ".join([word.lemma_ for word in sp(phrase)])
-
-def change_comma(speech):
-    """
-    Fixes comma issues due to OCR errors
-    :param speech: text of the speech
-    :return: corrected text
-    """
-    return re.sub("\.(?=\s[a-z0-9]|\sI[\W\s])", ",", speech)
+def remove_wordy(s, wordy_list):
+    for i in wordy_list:
+        s=s.replace(i, "")
+    return s
 
 def add_stemmed_col_to_df(df, speeches_col, stemmed_col):
     """
