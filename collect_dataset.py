@@ -8,71 +8,7 @@ import pandas as pd
 presidency_proj_direc = "data/presidency_project"
 if not os.path.exists(presidency_proj_direc):
     os.makedirs(presidency_proj_direc)
-"""
-News Conference
-"""
-def get_newsconf_index():
-    prefix = "https://www.presidency.ucsb.edu"
-    indexpage = "https://www.presidency.ucsb.edu/documents/app-categories/presidential/news-conferences?items_per_page=60&page={}" #36pages
-    conferences = []
-    for i in range(36):
-        soup = BeautifulSoup(requests.get(indexpage.format(i)).text, 'html.parser')
-        rows = soup.find("div", {"class": "view-content"}).find_all("div", {"class":"col-sm-8"})
-        conferences += [(prefix+i.find("a")["href"], i.span['content']) for i in rows]
-    assert len(conferences) == 2157
-    '''
-    with open() as f:
-        f.writelines(conferences)
-    '''
-    return conferences 
 
-def get_party(person):
-    prefix = "https://www.presidency.ucsb.edu"
-    url = prefix+person
-    if "president" in url:
-        soup = BeautifulSoup(requests.get(url).text, "html.parser")
-        party = soup.find_all("div", {"class":"f-item"})[3].text
-        return party
-    else:
-        #TODO: external source?
-        return None
-
-def get_newsconf_QA(conferences, save_file):
-    """
-    conferences: list of (str) news conference links
-    """
-    csvwriter = csv.writer(save_file, delimiter=",")
-    csvwriter.writerow(["id", "question", "answer", "answerer_name", "party", "date"])
-    for id, (url, date) in enumerate(conferences):
-        html = requests.get(url).text
-        soup = BeautifulSoup(html, "html.parser")
-        briefing = soup.find("div", {"class": "field-docs-content"})
-        last, cur = None, None
-        QA = []
-        answerer = soup.find("h3", {"class": "diet-title"})
-        answerer_name = answerer.a.text
-        party = get_party(answerer.a['href'])
-        date = None
-        for k, speech in enumerate(briefing.contents):
-            try:
-                if speech.i.text.startswith("Q."):
-                    cur = k
-                    if last is not None:
-                        question = briefing.contents[last].contents[1]
-                        answer = " ".join([a.text for a in briefing.contents[last+1:cur]])
-                        QA.append([id, question, answer, answerer_name, party, date])
-                        csvwriter.writerow([id, question, answer, answerer_name, party, date])
-                        last = cur 
-                    else:
-                        last = k
-                        continue
-            except AttributeError:
-                continue
-    save_file.close()
-    return QA
-conferences = get_newsconf_index()
-f = open(os.path.join(presidency_proj_direc,"president_newsconference.csv"), 'w', newline='')
-get_newsconf_QA(conferences, f)
 """
 Presidential Campaign Debate
 """
