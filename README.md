@@ -2,6 +2,10 @@
 Project for the class "Legal DNA".
 ## Dataset (in-progress)
 - [Presidency Project](https://www.presidency.ucsb.edu/)
+  - [News Conference](https://www.presidency.ucsb.edu/documents/app-categories/presidential/news-conferences)
+)
+  - [Presidential Campaings](https://www.presidency.ucsb.edu/documents/presidential-documents-archive-guidebook/presidential-campaigns-debates-and-endorsements-0"
+)
 - [Gallup Topic Questions](https://news.gallup.com/poll/trends.aspx#P)
 
 ## Run the code
