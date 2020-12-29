@@ -7,11 +7,4 @@ with open(path, 'r') as f:
 with open(raw, 'r') as f:
     text = f.read()
     print(text[start:end])
-
-import spacy
-from spacy.gold import biluo_tags_from_offsets
-nlp = spacy.load("en_core_web_sm")
-doc = nlp(text)
-entities = [(start, end, ent_type)]
-tags = biluo_tags_from_offsets(doc, entities)
-print(tags)
+ 
