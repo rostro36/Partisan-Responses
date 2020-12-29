@@ -1,12 +1,16 @@
 # Partisan-Responses
-Project for the class "Legal DNA".
+Project for the class "Introduction of Natural Language Processing (Fall 2020)", an extension to a previous course project. 
 ## Dataset (in-progress)
 - [Presidency Project](https://www.presidency.ucsb.edu/)
   - [News Conference](https://www.presidency.ucsb.edu/documents/app-categories/presidential/news-conferences)
 )
-  - [Presidential Campaings](https://www.presidency.ucsb.edu/documents/presidential-documents-archive-guidebook/presidential-campaigns-debates-and-endorsements-0"
+  - [Presidential Campaings](https://www.presidency.ucsb.edu/documents/presidential-documents-archive-guidebook/presidential-campaigns-debates-and-endorsements-0")
 )
 - [Gallup Topic Questions](https://news.gallup.com/poll/trends.aspx#P)
+
+## Build KG
+### Pipeline
+raw text -> coreference resolution -> annotation (entities and relations) -> Train NER (with spacy) -> Train semantic relation extraction(SRE)(not sure...) -> KG 
 
 ## Run the code
 Follow through the numbered notebooks. Starting at 06 only the dataset from all speeches since 2000 gets executed.

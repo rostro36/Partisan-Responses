@@ -8,7 +8,11 @@ import pickle
 import csv 
 import nltk 
 from nltk.stem import PorterStemmer
-from utils import *
+#from utils import *
+from time import sleep
+import spacy 
+import neuralcoref
+import random 
 
 class Heinbound:
     def __init__(self, path):
@@ -158,7 +162,7 @@ class Heinbound:
 
 class PresidencyProject:
     def __init__(self):
-        self.presidency_proj_direc = "data/presidency_project"
+        self.presidency_proj_direc = "data/presidency_project/"
         if not os.path.exists(self.presidency_proj_direc):
             os.makedirs(self.presidency_proj_direc)
         self.mainpage = "https://www.presidency.ucsb.edu/"
@@ -180,13 +184,43 @@ class PresidencyProject:
             self.partyAffiliation[name] = None 
             #TODO: external source?
             return None
+    def collect_and_save(self, save_file=None):
+        pass
+
+    def load_data(self, filepath):
+        if not os.path.exists(filepath):
+            self.collect_and_save(filepath)
+        data = pd.read_csv(filepath)
+        return data 
+
+    def split_to_annotate(self, filepath, ann_size):
+        random.seed(0)
+        data = self.load_data(filepath)
+        ann_idx = random.sample(range(data.shape[0]), ann_size)
+        for i in ann_idx:
+            with open("./brat/data/newsconf_coref/{}_{}.txt".format(data.id.iloc[i], i), 'w') as f:
+                for line in nltk.sent_tokenize(str(data.answer.iloc[i])): # TODO
+                    f.write(line.strip())
+                    f.write("\n")
 
 class NewsConference(PresidencyProject):
     """
     News Conference
     """
     def __init__(self):
-        super()
+        super().__init__()
+        self.direc = self.presidency_proj_direc+"newsconference/"
+        if not os.path.exists(self.direc):
+            os.makedirs(self.direc)
+        self._path_to_conference_list = os.path.join(self.direc, "newsconference_list.txt")
+        self._ckpt = os.path.join(self.direc, "ckpt.txt")
+        self.pipe = spacy.load('en')
+        neuralcoref.add_to_pipe(self.pipe)
+
+    def _load_conference_list(self):
+        with open(self._path_to_conference_list, "r") as f:
+            return [i.split() for i in f.readlines()]
+
     def get_newsconf_weblink_list(self):
         """
         return:
@@ -198,63 +232,216 @@ class NewsConference(PresidencyProject):
         for i in range(36):
             soup = BeautifulSoup(requests.get(indexpage.format(i)).text, 'html.parser')
             rows = soup.find("div", {"class": "view-content"}).find_all("div", {"class":"col-sm-8"})
-            conferences += [(prefix+i.find("a")["href"], i.span['content']) for i in rows]
+            conferences += [(self.mainpage+i.find("a")["href"], i.span['content']) for i in rows]
         assert len(conferences) == 2157
-        '''
-        with open() as f:
-            f.writelines(conferences)
-        '''
+        with open(self._path_to_conference_list, "w") as f:
+            f.writelines([i[0]+"\t"+i[1]+"\n" for i in conferences])
         return conferences 
-    def get_newsconf_QA(self, conferences, save_file):
+    
+    def load_ckpt(self, conferences):
+        if os.path.exists(self._ckpt):
+            ckpt = int(open(self._ckpt, "r").read())
+            if ckpt+1 == len(conferences):
+                return 
+            conferences = conferences[ckpt:]
+            print("Last conference id scraped: {}".format(ckpt)) 
+        else:
+            ckpt = 0
+        return ckpt, conferences
+
+    def is_q_start(self, speech, answer, row):
+        is_q = False
+        if hasattr(speech, "i"): 
+            if hasattr(speech.i, "text") and speech.i.text.startswith("Q."):
+                is_q = True 
+        if hasattr(speech, "em"):
+            if hasattr(speech.em, "text") and speech.em.text.startswith("Q."):
+                is_q = True
+        try:
+            if speech.text.startswith("Q. "):
+                is_q = True
+        except AttributeError:
+            if speech.startswith("Q. "):
+                is_q = True
+        
+        return is_q
+    
+    def is_a_start(self, speech, answerer_name, question, row):
+        is_a = False
+        lastname = answerer_name.lower().split()[-1]
+        if question != '':
+            if hasattr(speech, "i"):
+                if hasattr(speech.i, "text"):
+                    if 'the president.' in speech.i.text.lower() or 'president '+lastname in speech.i.text.lower():
+                        is_a = True 
+            if hasattr(speech, "em"):
+                if hasattr(speech.em, "text"):
+                    if 'the president.' in speech.em.text.lower() or 'president '+lastname in speech.em.text.lower():
+                        is_a = True 
+            if hasattr(speech, "text"):
+                prefix = speech.text.split(".")[0][:30]
+            else:
+                prefix = speech.split(".")[0][:30]
+            if 'the president.' in prefix or 'president '+lastname in prefix:
+                is_a = True
+            if is_a:
+                row=[question]
+                question = ""
+        return is_a, question, row
+            
+    def is_a_following(self, speech, answer):
+        is_a_following=True
+        if answer == "":
+            is_a_following = False
+        if hasattr(speech, "i") and speech.i is not None:
+            is_a_following = False
+        if hasattr(speech, "em") and speech.em is not None:
+            is_a_following=False
+        if hasattr(speech, "text"):
+            t=speech.text.lower()
+        else:
+            t = speech.lower()
+        if t.startswith('president ') or t.startswith('prime minister ') or t.startswith('chancellor '):
+            is_a_following=False
+        return is_a_following
+    
+    def get_metadata(self, url):
+        html = requests.get(url).text
+        soup = BeautifulSoup(html, "html.parser")
+        briefing = soup.find("div", {"class": "field-docs-content"})
+        answerer = soup.find("h3", {"class": "diet-title"})
+        answerer_name = answerer.a.text
+        party = self.get_party(answerer_name, answerer.a['href'])
+        return briefing, answerer_name, party
+
+    def scrape_newsconf_QA(self, conferences, save_file):
         """
         conferences: list of (str) news conference links
         """ 
+        print("Start Scraping...")
+        ckpt, conferences = self.load_ckpt(conferences)
+        
         for id, (url, date) in enumerate(conferences):
-            html = requests.get(url).text
-            soup = BeautifulSoup(html, "html.parser")
-            last, cur = None, None
+            conf_id = ckpt + id +1
             QA = []
-
-            briefing = soup.find("div", {"class": "field-docs-content"})
-            answerer = soup.find("h3", {"class": "diet-title"})
-            answerer_name = answerer.a.text
-            party = self.get_party(answerer_name, answerer.a['href'])
-            date = None
-            for k, speech in enumerate(briefing.contents):
-                try:
-                    if speech.i.text.startswith("Q."): #TODO: no i element
-                        cur = k
-                        if last is not None:
-                            question = briefing.contents[last].contents[1]
-                            answer = " ".join([a.text for a in briefing.contents[last+1:cur]])
-                            QA.append([id, question, answer, answerer_name, party, date])
-                            last = cur 
+            try:
+                briefing, answerer_name, party = self.get_metadata(url)
+                question = ""
+                answer = ""
+                row = []
+                q_start = -1
+                for k, speech in enumerate(briefing.contents):
+                    is_q =self.is_q_start(speech, answer, row)
+                    is_a, question, row =self.is_a_start(speech, answerer_name, question, row)
+                    _is_a_following = self.is_a_following(speech, answer)
+                    if is_q:
+                        if row != []:
+                            resolved = self.pipe(row[0]+" ## "+answer)._.coref_resolved.split(" ## ")
+                            q = resolved[0]
+                            a = "".join(resolved[1:])
+                            row = [conf_id, q, a, answerer_name, party]
+                            QA.append(row)
+                            row = []
+                        answer = ""
+                        try:
+                            question += speech.text[3:]
+                        except AttributeError:
+                            question += speech[3:]
+                        q_start = k
+                    elif question != "":
+                        try:
+                            question += speech.text
+                        except AttributeError:
+                            question += speech
+                    elif is_a or _is_a_following:
+                        if hasattr(speech, "text"):
+                            answer += speech.text
                         else:
-                            last = k
-                            continue
-                except AttributeError:
-                    continue
-        if save_file:
-            csvwriter = csv.writer(save_file, delimiter=",")
-            csvwriter.writerow(["id", "question", "answer", "answerer_name", "party", "date"])
-            csvwriter.writerow(QA)
-            save_file.close()
-        return QA
+                            answer += speech 
+                    else:
+                        if row != [] and answer != "":
+                            resolved = self.pipe(row[0]+" ## "+answer)._.coref_resolved.split(" ## ")
+                            q = resolved[0]
+                            a = "".join(resolved[1:])
+                            row = [conf_id, q, a, answerer_name, party]
+                            QA.append(row)
+                            row = []
+                        continue
+                    """
+                    try:
+                        Q_attr = self.is_q_attr(speech)
+                        if Q_attr: #<i> or <em>
+                            cur = k
+                            if last is not None:
+                                question = 
+                                ans_sents = []
+                                for a in briefing.contents[last+1:cur]:
+                                    if hasattr(a, "text"):
+                                        ans_sents.append(a.text)
+                                    else:
+                                        ans_sents.append(a)
+                                answer = " ".join(ans_sents)
+                                text = question + answer
+                                question, answer = self.pipe(text)._.coref_resolved.split("The President.")
+                                QA.append([conf_id, question, answer, answerer_name, party])
+                                last = cur 
+                            else:
+                                last = k
+                                continue
+                        elif speech.text.startswith("Q. "):
+                            cur = k
+                            if last is not None:
+                                question = briefing.contents[last].text[3:]
+                                ans_sents = []
+                                for a in briefing.contents[last+1:cur]:
+                                    if hasattr(a, "text"):
+                                        ans_sents.append(a.text)
+                                    else:
+                                        ans_sents.append(a)
+                                answer = " ".join(ans_sents)
+                                QA.append([conf_id, question, answer, answerer_name, party, date])
+                                last = cur 
+                            else:
+                                last = k
+                                continue
+                    except AttributeError:
+                        continue
+                    """
+                if save_file:
+                    if conf_id > 1:
+                        with  open(save_file, "a") as f:
+                            csvwriter = csv.writer(f, delimiter=",")
+                            csvwriter.writerows(QA)
+                    else:
+                        with open(save_file, "w") as f:
+                            csvwriter = csv.writer(f, delimiter=",")
+                            csvwriter.writerow(["id", "question", "answer", "answerer_name", "party", "date"])
+                            csvwriter.writerows(QA)
+                print("Conf id {} Finished".format(conf_id))
+                open(self._ckpt, 'w').write(str(conf_id)) 
+            except requests.exceptions.SSLError:
+                print("Wait for 5 minutes to continute...")
+                sleep(300)
+                self.scrape_newsconf_QA(conferences, save_file)
+
     def collect_and_save(self, save_file=None): #TODO: MaxRequest
         """
         save_file: str, path to save news conference QA table, if None, only collect
         """
-        conferences = self.get_newsconf_weblink_list()
-        f = open(os.path.join(presidency_proj_direc,"president_newsconference.csv"), 'w', newline='')
-        self.get_newsconf_QA(conferences, save_file)
-
+        if os.path.exists(save_file):
+            print("Already saved!")
+            return 
+        conferences = self._load_conference_list() if os.path.exists(self._path_to_conference_list) else self.get_newsconf_weblink_list()
+        self.scrape_newsconf_QA(conferences, save_file)
+    
+    
 class Debate(PresidencyProject):
     """
     Presidential Campaign Debate
     """
     def __init__(self):
         self.url = "https://www.presidency.ucsb.edu/documents/presidential-documents-archive-guidebook/presidential-campaigns-debates-and-endorsements-0"
-    def collect_debate_guidebook(url, save_direc):
+    def collect_debate_guidebook(self, url, save_direc):# TODO: check local directory
         statistics = {"presidential":0, "democrat":0, "republican":0}
         debate_id, year, category = 0, None, None
         # Init csvfile
@@ -278,13 +465,13 @@ class Debate(PresidencyProject):
         print(statistics)
         print(debate_id)
 
-    def find_debate_table(url):
+    def find_debate_table(self, url):
         guidebook = requests.get(url)
         guidebook_soup = BeautifulSoup(guidebook.text, "html.parser")
         debates_table = guidebook_soup.find("tbody")
         return debates_table
 
-    def find_debate_name_and_url(row):
+    def find_debate_name_and_url(self, row):
         cells = row.find_all("td")
         if len(cells) >1:
             name = cells[1].text
@@ -297,7 +484,7 @@ class Debate(PresidencyProject):
             return None, None
         return name, url
 
-    def find_year_and_category(row):
+    def find_year_and_category(self, row):
         year = row[0].text
         cat_text = row[1].text.lower()
         if "general" in cat_text:
@@ -308,64 +495,68 @@ class Debate(PresidencyProject):
             category = "republican"
         return year, category
 
-
-#collect_debate_guidebook(url, presidency_proj_direc)
-guidebook = pd.read_csv(os.path.join(presidency_proj_direc,"presidency_project_debates_guidebook.csv"))
-dem = guidebook[guidebook['category'] == 'republican']
+# #collect_debate_guidebook(url, presidency_proj_direc)
+# guidebook = pd.read_csv(os.path.join(presidency_proj_direc,"presidency_project_debates_guidebook.csv"))
+# dem = guidebook[guidebook['category'] == 'republican']
 # Extract debate script
 # Democrat
+# for i in range(dem.shape[0]):
+#     url = dem.iloc[i]['url']
+#     debate_id = dem.iloc[i]['debate_id']
+#     debate_html = requests.get(url)
+#     soup = BeautifulSoup(debate_html.text, "html.parser")
+#     script = soup.findAll('div', {'class': 'field-docs-content'})
 
-for i in range(dem.shape[0]):
-    url = dem.iloc[i]['url']
-    debate_id = dem.iloc[i]['debate_id']
-    debate_html = requests.get(url)
-    soup = BeautifulSoup(debate_html.text, "html.parser")
-    script = soup.findAll('div', {'class': 'field-docs-content'})
-
-    if len(script) == 1:
-        speeches = script[0].find_all('p')
-        current_speaker = None
-        current_party = None #None if not candidate
-        date = soup.find("div", {"class":"field-docs-start-date-time"}).span['content']
-        p_id = 0
-        try:
-            start = speeches[p_id].contents[0].text
-        except AttributeError:
-            start = speeches[p_id].contents[0]
-        if start.upper() == "PARTICIPANTS:": #skip to next <p>
-            p_id += 1
-        start = speeches[p_id]
-        try:
-            if start.contents[0].text.lower().startswith("moderator"):
-                p = re.compile("([Mm][Oo][Dd][Ee][Rr][Aa][Tt][Oo][Rr][Ss]?:)|(\([\.\w\s-]+\))") # remove string moderator(s): and organization
-                moderators = [i.strip() for i in p.sub('', speeches[1].text.replace("and", "")).split(";")]
-                transtable = str.maketrans("áéíóúÁÉÍÓÚ", "aeiouAEIOU")
-                moderators_lastname = [name.split(",")[0].split(" ")[-1].translate(transtable).lower() for name in moderators]
-                p_id += 1
-            speech_id = 0
-            for speech in speeches[p_id:]:
-                if len(speech.contents) == 2:
-                    current_speaker = speech.contents[0].text.replace(":", "").lower()
-                    if current_speaker not in moderators_lastname and current_speaker != "q":
-                        current_party = "R" #todo
-                    else:
-                        current_party = "M"
-                    speech = speech.contents[1].strip()
-                else:
-                    speech = speech.text
-                record = [debate_id, speech_id, current_speaker, speech, current_party]
-                csvwriter.writerow(record)
-                speech_id += 1
-        except AttributeError:
-            continue
-    else:
-        print("More than 1 script found on the url:")
-        print(url)
-        print("="*20)
+#     if len(script) == 1:
+#         speeches = script[0].find_all('p')
+#         current_speaker = None
+#         current_party = None #None if not candidate
+#         date = soup.find("div", {"class":"field-docs-start-date-time"}).span['content']
+#         p_id = 0
+#         try:
+#             start = speeches[p_id].contents[0].text
+#         except AttributeError:
+#             start = speeches[p_id].contents[0]
+#         if start.upper() == "PARTICIPANTS:": #skip to next <p>
+#             p_id += 1
+#         start = speeches[p_id]
+#         try:
+#             if start.contents[0].text.lower().startswith("moderator"):
+#                 p = re.compile("([Mm][Oo][Dd][Ee][Rr][Aa][Tt][Oo][Rr][Ss]?:)|(\([\.\w\s-]+\))") # remove string moderator(s): and organization
+#                 moderators = [i.strip() for i in p.sub('', speeches[1].text.replace("and", "")).split(";")]
+#                 transtable = str.maketrans("áéíóúÁÉÍÓÚ", "aeiouAEIOU")
+#                 moderators_lastname = [name.split(",")[0].split(" ")[-1].translate(transtable).lower() for name in moderators]
+#                 p_id += 1
+#             speech_id = 0
+#             for speech in speeches[p_id:]:
+#                 if len(speech.contents) == 2:
+#                     current_speaker = speech.contents[0].text.replace(":", "").lower()
+#                     if current_speaker not in moderators_lastname and current_speaker != "q":
+#                         current_party = "R" #todo
+#                     else:
+#                         current_party = "M"
+#                     speech = speech.contents[1].strip()
+#                 else:
+#                     speech = speech.text
+#                 record = [debate_id, speech_id, current_speaker, speech, current_party]
+#                 csvwriter.writerow(record)
+#                 speech_id += 1
+#         except AttributeError:
+#             continue
+#     else:
+#         print("More than 1 script found on the url:")
+#         print(url)
+#         print("="*20)
 # write to file
-f = open(os.path.join(presidency_proj_direc,"republican_candidates_debates_speeches.csv"), 'w', newline='')
-csvwriter = csv.writer(f, delimiter=",")
-csvwriter.writerow(['debate_id', 'speech_id', 'speaker', 'speech', 'party'])
-f.close()
+# f = open(os.path.join(presidency_proj_direc,"republican_candidates_debates_speeches.csv"), 'w', newline='')
+# csvwriter = csv.writer(f, delimiter=",")
+# csvwriter.writerow(['debate_id', 'speech_id', 'speaker', 'speech', 'party'])
+# f.close()
 #unique_start = {'BRIT HUME, FOX NEWS:', 'PARTICIPANTS:', 'WOLF BLITZER:', 'Participants:', 'Moderators:', 'TOM BROKAW:'}
 #unique_start = {'PARTICIPANTS:', 'ANNOUNCER:', 'Moderators:', 'COKIE ROBERTS:', 'Participants:'}
+
+if __name__ == "__main__":
+    conf = NewsConference()
+    filename = "./data/presidency_project/newsconference/newsconference_2157_201228.csv"
+    conf.collect_and_save(filename)
+    conf.split_to_annotate(filename, ann_size=10)
