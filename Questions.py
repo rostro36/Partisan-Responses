@@ -26,11 +26,9 @@ class GallupQuestions(Questions):
             for topic in letter.parent.ul.find_all('a'):
                 topic_link = topic.get('href')
                 topic_questions = self.collect_topic_questions(topic_link)
-                if len(topic_questions) > 1:
+                if topic_questions[0] is not None:
                     questions_by_topic[topic_questions[0]] = topic_questions[1]
                     self.questions += topic_questions[1]
-                else:
-                    self.questions += topic_questions
         return questions_by_topic
 
     def collect_topic_questions(self, topic_link):
