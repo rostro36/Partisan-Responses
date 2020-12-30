@@ -94,9 +94,9 @@ class GallupQuestions(Questions):
             if question.startswith("Next,"):
                 question = self.rephrase_question_with_next(question)
         return questions
-
-gallup = GallupQuestions()
-gallup_questions_by_topic = gallup.collect()
-pickle.dump(gallup_questions_by_topic, open("./gallup_questions_by_topic.pickle", "wb"))
+if __name__ == "__main__":
+    gallup = GallupQuestions()
+    gallup_questions_by_topic = gallup.collect()
+    pickle.dump(gallup_questions_by_topic, open("./gallup_questions_by_topic.pickle", "wb"))
 #'Do you think abortions should be legal under any circumstances, legal only under certain circumstances or illegal in all circumstances? (Asked of those who say abortion should be legal under certain circumstances)
 # \\nDo you think abortion should be legal in most circumstances or only in a few circumstances?'

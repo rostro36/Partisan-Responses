@@ -11,6 +11,7 @@ class Answer:
     def __init__(self, answer):
         self.content = answer
         self.phrase_corpus=[]
+        self.phrase_type= "" #e.g 
         self.phrase_index=None
         self.triplet=[]
         self.triplet_id=[]
@@ -49,9 +50,10 @@ class Answer:
         oie_result = [i['verbs'] for i in oie_result]
         return oie_result
     
-    def add_phrase(self, phrase):
+    def add_phrase(self, phrase, phrase_type):
         Id=len(self.phrase_corpus)
         self.phrase_corpus.append(phrase)
+        self.phrase_type += " <{}> ".format(phrase_type)
         self.phrase_index = hnswlib.Index('cosine', 512)
         self.phrase_index.init_index(len(self.phrase_corpus), ef_construction=200, M=48, random_seed=36)
         if len(self.phrase_corpus) > 1:
@@ -60,21 +62,21 @@ class Answer:
         self.phrase_index.save_index("phrase_index")
         return Id, phrase
 
-    def deduplicate(self,phrase):
+    def deduplicate(self,phrase, phrase_type):
         if len(self.phrase_corpus)==0:
-            return self.add_phrase(phrase)
+            return self.add_phrase(phrase, phrase_type)
         nearest_neighbor=self.phrase_index.knn_query(utils.model([phrase]))
         if nearest_neighbor != []:
             closest_neighbor, closest_distance = nearest_neighbor
         if closest_neighbor[0] == []:
-            return self.add_phrase(phrase)
+            return self.add_phrase(phrase, phrase_type)
         if closest_distance[0][0] > distance_threshold:
-            return self.add_phrase(phrase)
+            return self.add_phrase(phrase, phrase_type)
         return_phrase=self.phrase_corpus[closest_neighbor[0][0]]
         return self.phrase_corpus.index(return_phrase),return_phrase
 
     def create_training(self,verb_dict, verb_list):
-        self.change_comma()
+        #self.change_comma()
         triplets = self.create_oieresult()
         return_text=""
         for sentence in triplets:
@@ -84,6 +86,7 @@ class Answer:
             text=re.sub('\[[^\s]*','',sentence[0]['description'])
             text=re.sub('\]','',text).split()
             tags=[False]*len(sentence[0]['tags'])
+            phrasetype_prefix = [False]*len(sentence[0]['tags'])
             for triplet in sentence:
                 arg_points=[x in ['I-ARG0','B-ARG0','I-ARG1','B-ARG1'] for x in triplet['tags']]
                 abort=False
@@ -114,26 +117,33 @@ class Answer:
                     verb_dict[verb]=verb_id
 
                 max_id=len(self.phrase_corpus)
-                subject_id,subject=self.deduplicate(subject)
+                subject_id,subject=self.deduplicate(subject, phrase_type='subject')
                 if subject_id==max_id:
                     self.parsed.append(str(subject_id))
                 tags=[str(subject_id) if triplet['tags'][x] in ['I-ARG0','B-ARG0'] else tags[x] for x in range(len(text))]
-
+                phrasetype_prefix=['subject' if triplet['tags'][x] in ['I-ARG0','B-ARG0'] else phrasetype_prefix[x] for x in range(len(text))]
+                
                 max_id=len(self.phrase_corpus)
-                objekt_id,objekt=self.deduplicate(objekt)
+                objekt_id,objekt=self.deduplicate(objekt, phrase_type='object')
                 if objekt_id==max_id:
                     self.parsed.append(str(objekt_id))
                 tags=[str(objekt_id) if triplet['tags'][x] in ['I-ARG1','B-ARG1'] else tags[x] for x in range(len(text))]
+                phrasetype_prefix=['object' if triplet['tags'][x] in ['I-ARG1','B-ARG1'] else phrasetype_prefix[x] for x in range(len(text))]
+
                 if (subject,objekt,verb) not in self.triplet:
                     self.triplet.append((subject,objekt,verb))
                     self.triplet_id.append((subject_id,verb_id,objekt_id))
                     self.parsed.append("str(len(self.phrase_corpus)+"+str(len(self.triplet))+")")
             self.parsed.append('str(len(self.phrase_corpus))+" -1"')
-            text=['<phrase_'+str(tags[x])+'>' if tags[x] else text[x] for x in range(len(text))]
+            text=['<{}_'.format(phrasetype_prefix[x])+str(tags[x])+'>' if tags[x] else text[x] for x in range(len(text))]
             text.append(None)
             text=[text[x] for x in range(len(text)-1) if (text[x]!=text[x+1] or text[x][0]!='<')]
             return_text=return_text+' '+' '.join(text)
-        return self.phrase_corpus,self.triplet_id,return_text[1:],[eval(x, {"self": self}) for x in self.parsed]
+
+        masked_text = return_text[1:]
+        parsed = [eval(x, {"self": self}) for x in self.parsed]
+        preprocessed_row = [self.phrase_corpus, self.phrase_type.strip(), self.triplet_id, masked_text, parsed]
+        return preprocessed_row, verb_dict, verb_list
 
     def create_test(self,verb_dict, verb_list):
         self.change_comma()
@@ -174,13 +184,13 @@ class Answer:
                     continue #if verb does not exist in verb_dict it can not be used to create
                 verb_id=verb_dict[verb]
                 max_id=len(self.phrase_corpus)
-                subject_id,subject=self.deduplicate(subject)
+                subject_id,subject=self.deduplicate(subject, 'subject')
                 if subject_id==max_id:
                     self.parsed.append(str(subject_id))
                 tags=[str(subject_id) if triplet['tags'][x] in ['I-ARG0','B-ARG0'] else tags[x] for x in range(len(text))]
 
                 max_id=len(self.phrase_corpus)
-                objekt_id,objekt=self.deduplicate(objekt)
+                objekt_id,objekt=self.deduplicate(objekt, 'object')
                 if objekt_id==max_id:
                     self.parsed.append(str(objekt_id))
                 tags=[str(objekt_id) if triplet['tags'][x] in ['I-ARG1','B-ARG1'] else tags[x] for x in range(len(text))]
@@ -193,4 +203,10 @@ class Answer:
             text.append(None)
             text=[text[x] for x in range(len(text)-1) if (text[x]!=text[x+1] or text[x][0]!='<')]
             return_text=return_text+' '+' '.join(text)
-        return self.phrase_corpus,self.triplet_id,return_text[1:],[eval(x, {"self": self}) for x in self.parsed]
+        return self.phrase_corpus, self.triplet_id, return_text[1:], [eval(x, {"self": self}) for x in self.parsed]
+
+if __name__ == "__main__":
+    df = pd.read_csv("./data/presidency_project/newsconference/dem_train.csv")
+    answer = df.answer.iloc[2]
+    a = Answer(answer)
+    phrase_corpus, phrase_type, triplet_id, masked_text, parsed = a.create_training({}, [])

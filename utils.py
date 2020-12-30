@@ -40,6 +40,14 @@ def add_stemmed_col_to_df(df, speeches_col, stemmed_col):
 
     return df
 
+def lemmatize(phrase):
+    """
+    Given some text, it returns the lemmatized text
+    :param phrase: text
+    :return: lemmatized text
+    """
+    return " ".join([word.lemma_ for word in sp(phrase)])
+
 
 if __name__ == "__main__":
     speeches = pd.read_pickle("all_speech_sentence_filtered.pkl")
