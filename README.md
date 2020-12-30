@@ -1,14 +1,21 @@
 # Partisan-Responses
-Project for the class "Introduction of Natural Language Processing (Fall 2020)", an extension to a previous course project. 
+Project for the class "Introduction of Natural Language Processing (Fall 2020)", an extension to a previous course project(see commit ). 
 ## Dataset (in-progress)
 - [Presidency Project](https://www.presidency.ucsb.edu/)
-  - [News Conference](https://www.presidency.ucsb.edu/documents/app-categories/presidential/news-conferences)
-)
-  - [Presidential Campaings](https://www.presidency.ucsb.edu/documents/presidential-documents-archive-guidebook/presidential-campaigns-debates-and-endorsements-0")
-)
+  - [News Conference](https://www.presidency.ucsb.edu/documents/app-categories/presidential/news-conferences)  
 - [Gallup Topic Questions](https://news.gallup.com/poll/trends.aspx#P)
+## Usage
+Clone the repository and Install Anaconda, then create a conda environment for this project and retrieve datasets.
+```{bash}
 
-## Build KG
+```
+
+## Models
+### GPT-2 (Baseline)
+
+### GraphWriter (naive)
+
+### GraphWriter
 ### Pipeline
 raw text -> coreference resolution -> annotation (entities and relations) -> Train NER (with spacy) -> Train semantic relation extraction(SRE)(not sure...) -> KG 
 
