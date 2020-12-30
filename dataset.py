@@ -13,7 +13,9 @@ from time import sleep
 import spacy 
 import neuralcoref
 import random 
-
+import json 
+from sklearn.model_selection import train_test_split
+from Answer import Answer
 class Heinbound:
     def __init__(self, path):
         self.path = path
@@ -184,6 +186,7 @@ class PresidencyProject:
             self.partyAffiliation[name] = None 
             #TODO: external source?
             return None
+    
     def collect_and_save(self, save_file=None):
         pass
 
@@ -192,6 +195,29 @@ class PresidencyProject:
             self.collect_and_save(filepath)
         data = pd.read_csv(filepath)
         return data 
+    
+    def filter(self, filepath):
+        df = pd.read_csv(filepath)
+        df = df[-pd.isnull(df.answer)]
+        df = df[df.question.apply(lambda x: "?" in x)]
+        print("Remove entries with either invalid questions or null answers\n")
+        print(df.party.value_counts())
+        print()
+        df.to_csv(filename, index_label=False)
+        return df 
+
+    def split_data(self, df, party):
+        df = df[df.party==party]
+        train, test = train_test_split(df, test_size=0.2, random_state=0)
+        train, val = train_test_split(train, test_size=0.125, random_state=0)
+        direc = "data/presidency_project/newsconference"
+        prefix = party.lower()[:3]
+        print("{}:\nTrain Size: {}\nValidation Size: {}\nTest Size: {}\n".format(party, train.shape[0], val.shape[0], test.shape[0]))
+        
+        train.to_csv(os.path.join(direc, "{}_train.csv".format(prefix)), index_label=False)
+        val.to_csv(os.path.join(direc, "{}_val.csv".format(prefix)), index_label=False)
+        test.to_csv(os.path.join(direc, "{}_test.csv".format(prefix)), index_label=False)
+        return train, val, test
 
     def split_to_annotate(self, filepath, ann_size):
         random.seed(0)
@@ -202,6 +228,55 @@ class PresidencyProject:
                 for line in nltk.sent_tokenize(str(data.answer.iloc[i])): # TODO
                     f.write(line.strip())
                     f.write("\n")
+                with open("./brat/data/newsconf_coref/{}_{}.ann".format(data.id.iloc[i], i), 'w') as f:
+                    f.write("")
+    '''
+    def write_json(self, df, save_path):
+        result = []
+        for i in range(df.shape[0]):
+            sample = df.iloc[i]
+            unprocessed_sample = {"question": sample.question, 
+                        "entities":[], 
+                        "types": None, 
+                        "relations": [], 
+                        "answer":None, 
+                        "answer_og": sample.answer}
+            result.append(sample)
+        json.dump(result, save_path)
+    '''
+
+    def write_gw_input(self, input_data, output_direc, output_file):
+        if type(input_data) is str:
+            df = pd.read_csv(input_data)
+        else:
+            df = input_data
+
+        verb_dict_path = os.path.join(output_direc, "verb_dict.pickle")
+        verb_list_path = os.path.join(output_direc, "verb_list.pickle")
+        if os.path.exists(verb_dict_path):
+            verb_dict = pickle.load(open(verb_dict_path, 'rb'))
+        else:
+            verb_dict = {}
+        if os.path.exists(verb_list_path):
+            verb_list = pickle.load(open(verb_list_path, 'rb'))
+        else:
+            verb_dict = {}
+            verb_list = []
+            
+        with open(os.path.join(output_direc, output_file), "w") as f:
+            tsvwriter = csv.writer(f, delimiter="\t")
+            print("Output to: {}".format(os.path.join(output_direc, output_file)))
+            for i in range(df.shape[0]):
+                entry = df.iloc[i]
+                preprocessed_row, verb_dict, verb_list = Answer(entry.answer).create_training(verb_dict,verb_list)
+                phrase_corpus, phrase_type, triplet_id, parsed_text, parsed = preprocessed_row
+                phrase_corpus = ' ; '.join(phrase_corpus)
+                triplet_id = ' ; '.join([re.sub('\,','',str(x))[1:-1] for x in triplet_id])
+                parsed = ' '.join([str(x) for x in parsed])
+                tsvwriter.writerow([entry.question, phrase_corpus, phrase_type, triplet_id, parsed_text, parsed])
+        pickle.dump(verb_dict, open(verb_dict_path, 'wb'))
+        pickle.dump(verb_list, open(verb_list_path, 'wb'))
+        return verb_list
 
 class NewsConference(PresidencyProject):
     """
@@ -272,17 +347,17 @@ class NewsConference(PresidencyProject):
         if question != '':
             if hasattr(speech, "i"):
                 if hasattr(speech.i, "text"):
-                    if 'the president.' in speech.i.text.lower() or 'president '+lastname in speech.i.text.lower():
+                    if speech.i.text.lower().startswith("the president.") or speech.i.text.lower().startswith('president '+lastname):
                         is_a = True 
             if hasattr(speech, "em"):
                 if hasattr(speech.em, "text"):
-                    if 'the president.' in speech.em.text.lower() or 'president '+lastname in speech.em.text.lower():
+                    if speech.em.text.lower().startswith('the president.') or speech.em.text.lower().startswith('president '+lastname):
                         is_a = True 
             if hasattr(speech, "text"):
-                prefix = speech.text.split(".")[0][:30]
+                prefix = speech.text.split(".")[0][:30].lower()
             else:
-                prefix = speech.split(".")[0][:30]
-            if 'the president.' in prefix or 'president '+lastname in prefix:
+                prefix = speech.split(".")[0][:30].lower()
+            if prefix.startswith('the president') or prefix.startswith('president '+lastname):
                 is_a = True
             if is_a:
                 row=[question]
@@ -367,46 +442,6 @@ class NewsConference(PresidencyProject):
                             QA.append(row)
                             row = []
                         continue
-                    """
-                    try:
-                        Q_attr = self.is_q_attr(speech)
-                        if Q_attr: #<i> or <em>
-                            cur = k
-                            if last is not None:
-                                question = 
-                                ans_sents = []
-                                for a in briefing.contents[last+1:cur]:
-                                    if hasattr(a, "text"):
-                                        ans_sents.append(a.text)
-                                    else:
-                                        ans_sents.append(a)
-                                answer = " ".join(ans_sents)
-                                text = question + answer
-                                question, answer = self.pipe(text)._.coref_resolved.split("The President.")
-                                QA.append([conf_id, question, answer, answerer_name, party])
-                                last = cur 
-                            else:
-                                last = k
-                                continue
-                        elif speech.text.startswith("Q. "):
-                            cur = k
-                            if last is not None:
-                                question = briefing.contents[last].text[3:]
-                                ans_sents = []
-                                for a in briefing.contents[last+1:cur]:
-                                    if hasattr(a, "text"):
-                                        ans_sents.append(a.text)
-                                    else:
-                                        ans_sents.append(a)
-                                answer = " ".join(ans_sents)
-                                QA.append([conf_id, question, answer, answerer_name, party, date])
-                                last = cur 
-                            else:
-                                last = k
-                                continue
-                    except AttributeError:
-                        continue
-                    """
                 if save_file:
                     if conf_id > 1:
                         with  open(save_file, "a") as f:
@@ -433,7 +468,7 @@ class NewsConference(PresidencyProject):
             return 
         conferences = self._load_conference_list() if os.path.exists(self._path_to_conference_list) else self.get_newsconf_weblink_list()
         self.scrape_newsconf_QA(conferences, save_file)
-    
+        self.filter(save_file)
     
 class Debate(PresidencyProject):
     """
@@ -557,6 +592,20 @@ class Debate(PresidencyProject):
 
 if __name__ == "__main__":
     conf = NewsConference()
-    filename = "./data/presidency_project/newsconference/newsconference_2157_201228.csv"
-    conf.collect_and_save(filename)
-    conf.split_to_annotate(filename, ann_size=10)
+    filename = "./data/presidency_project/newsconference/newsconference_2157_201229.csv"
+    df = conf.load_data(filename)
+    for party in set(df.party):
+        train, val, test = conf.split_data(df, party)
+        # GW naive
+        gwnaive_direc = "./data/presidency_project/newsconference/gwnaive/{}".format(party)
+        if not os.path.exists(gwnaive_direc):
+            os.makedirs(gwnaive_direc)
+        # write processed data
+        print("Process {} data to GW input...".format(party))
+        conf.write_gw_input(train, output_direc=gwnaive_direc, output_file="preprocessed.train.tsv")
+        conf.write_gw_input(val, output_direc=gwnaive_direc, output_file="preprocessed.val.tsv")
+        verb_list = conf.write_gw_input(test, output_direc=gwnaive_direc, output_file="preprocessed.test.tsv")
+        # write relation vocab
+        print("Write vocabulary\n")
+        with open(os.path.join(gwnaive_direc,'relations.vocab'), 'w') as vocabfile:
+            vocabfile.writelines("%s\n" % verb.upper() for verb in verb_list)
