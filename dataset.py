@@ -10,6 +10,7 @@ import nltk
 from nltk.stem import PorterStemmer
 #from utils import *
 from time import sleep
+from datetime import datetime
 import spacy 
 import neuralcoref
 import random 
@@ -219,16 +220,24 @@ class PresidencyProject:
         test.to_csv(os.path.join(direc, "{}_test.csv".format(prefix)), index_label=False)
         return train, val, test
 
-    def split_to_annotate(self, filepath, ann_size):
+    def split_to_annotate(self, filepath, ann_size, folder_name=None):
+        output_dir = "./brat/data/"
         random.seed(0)
         data = self.load_data(filepath)
+        #party = #TODO
+        if folder_name is None:
+            folder_name = "newsconf_{}_{}/".format(party, datetime.now().strftime("%y%m%d%H%M"))
+        if not os.path.exists(os.path.join(output_dir, folder_name)):
+            os.makedirs(os.path.join(output_dir, folder_name))
         ann_idx = random.sample(range(data.shape[0]), ann_size)
         for i in ann_idx:
-            with open("./brat/data/newsconf_coref/{}_{}.txt".format(data.id.iloc[i], i), 'w') as f:
+            txtf = os.path.join(output_dir, folder_name, "{}_{}.txt".format(data.id.iloc[i], i))
+            annf = os.path.join(output_dir, folder_name, "{}_{}.ann".format(data.id.iloc[i], i))
+            with open(txtf, 'w') as f:
                 for line in nltk.sent_tokenize(str(data.answer.iloc[i])): # TODO
                     f.write(line.strip())
                     f.write("\n")
-                with open("./brat/data/newsconf_coref/{}_{}.ann".format(data.id.iloc[i], i), 'w') as f:
+                with open(annf, 'w') as f:
                     f.write("")
     '''
     def write_json(self, df, save_path):
@@ -589,7 +598,121 @@ class Debate(PresidencyProject):
 # f.close()
 #unique_start = {'BRIT HUME, FOX NEWS:', 'PARTICIPANTS:', 'WOLF BLITZER:', 'Participants:', 'Moderators:', 'TOM BROKAW:'}
 #unique_start = {'PARTICIPANTS:', 'ANNOUNCER:', 'Moderators:', 'COKIE ROBERTS:', 'Participants:'}
+class Annotation():
+    def __init__(self, folder, brat_datadir="./brat/data/"):
+        self.brat_datadir = brat_datadir
+        self.folder = folder
 
+    def get_raw_txt(self, txt):
+        # Doc Key
+        doc_key = os.path.splitext(txt)[0]
+        # Tokenized sentences
+        with open(os.path.join(self.brat_datadir, self.folder, txt), 'r') as f:
+            twt = nltk.tokenize.TreebankWordTokenizer()
+            sentences = []
+            sents_span = []
+            offset = 0
+            for sent in f.readlines():
+                sentences.append(twt.tokenize(sent))
+                span = [(i[0]+offset, i[1]+offset) for i in list(twt.span_tokenize(sent))]
+                sents_span.append(span)
+                offset += len(sent)
+        return sentences, sents_span, doc_key
+
+    def get_raw_ann(self, ann):  
+        with open(os.path.join(self.brat_datadir, self.folder, ann), 'r') as f:
+            ann = f.readlines()
+            ner = [i for i in ann if i.startswith("T")]
+            ner = [i.split("\t") for i in ner]
+            relations = [i for i in ann if i.startswith("R")]
+            relations = [i.split("\t")[1].split() for i in relations]
+        return ner, relations
+
+    def get_startidx_map(self, sentences):
+        charstart2tokenstart = {}
+        num_char = 0
+        num_token = 0
+        for sent in sentences:
+            for i, token in enumerate(sent):
+                if num_token == 0:
+                    charstart2tokenstart[0] = 0
+                    num_char += len(token) + 1
+                    num_token += 1
+                else:
+                    charstart2tokenstart[num_char] = num_token
+                    num_char += len(token) + 1
+                    num_token += 1
+        assert len("\n".join([" ".join(i) for i in sentences])) == num_char-1
+        return charstart2tokenstart
+
+    def preprocess_ner(self, ner, sents_span):
+        ner_new = []
+        label2tokenidx = {}
+        last_ner_mapped = 0
+        sents_span_flat = []
+        for s in sents_span:
+            sents_span_flat += s
+        for i, sent in enumerate(sents_span):
+            ner_sent = []
+            label2tokenidx[i] = {}
+            for ent in ner:
+                label = ent[0]
+                ent_type, charstart, charend = tuple(ent[1].split())
+                charstart, charend = int(charstart), int(charend)
+                for span in sent:
+                    if span[0]<= charstart and charstart < span[1]:
+                        tokenstart = sents_span_flat.index(span)
+                    if span[0] < charend and charend <= span[1]:
+                        tokenend = sents_span_flat.index(span)
+                        label2tokenidx[i][label] =[tokenstart, tokenend]
+                        ner_sent.append([tokenstart, tokenend, ent_type])
+                        break
+            ner_new.append(ner_sent)
+        # Test
+        tmp = []
+        for i in ner_new:
+            tmp += i
+        assert len(ner) == len(tmp)
+        return ner_new, label2tokenidx
+    
+    def preprocess_relations(self, relations, num_sent, label2tokenidx):
+        relations_new = []
+        last_rel_mapped = -1
+        flat = {}
+        for item in label2tokenidx.values():
+            flat.update(item)
+        for s in range(num_sent):
+            rel_sent = []
+            for i, r in enumerate(relations):
+                rel = r[0]
+                arg1 = r[1].replace("Arg1:", "")
+                arg2 = r[2].replace("Arg2:", "")
+                if arg1 in label2tokenidx[s].keys():
+                    rel_sent.append(label2tokenidx[s][arg1] +flat[arg2] + [rel])
+            relations_new.append(rel_sent)
+        return relations_new
+    
+    def preprocess_brat(self):
+        txtfiles = [f for f in os.listdir(os.path.join(self.brat_datadir, self.folder)) if f.endswith(".txt")]
+        jsonlines = []
+        for txt in txtfiles:
+            ann = os.path.splitext(txt)[0] + ".ann"
+            sentences, sents_span, doc_key = self.get_raw_txt(txt)
+            ner_raw, relations_raw, = self.get_raw_ann(ann)
+            ner, label2tokenidx = self.preprocess_ner(ner_raw, sents_span)
+            relations = self.preprocess_relations(relations_raw, len(sentences), label2tokenidx)
+            assert len(sentences) == len(ner) == len(relations)
+            row = {"clusters":[], "sentences":sentences, "ner": ner, "relations": relations, "doc_key": doc_key}
+            row = json.dumps(row)
+            jsonlines.append(row+"\n")
+        return jsonlines
+
+if __name__ == "__main__":
+    annotation = Annotation(folder="newsconf_coref")
+    jsonlines = annotation.preprocess_brat()
+    with open("./train.json", "w") as f:
+        f.writelines(jsonlines)
+"""
 if __name__ == "__main__":
     conf = NewsConference()
     filename = "./data/presidency_project/newsconference/newsconference_2157_201229.csv"
@@ -609,3 +732,4 @@ if __name__ == "__main__":
         print("Write vocabulary\n")
         with open(os.path.join(gwnaive_direc,'relations.vocab'), 'w') as vocabfile:
             vocabfile.writelines("%s\n" % verb.upper() for verb in verb_list)
+"""
