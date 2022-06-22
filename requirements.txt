@@ -34,7 +34,7 @@ more-itertools==8.4.0
 murmurhash==1.0.2
 networkx==2.4
 nltk==3.5
-numpy==1.19.0
+numpy==1.22.0
 oauthlib==3.1.0
 opt-einsum==3.2.1
 overrides==3.0.0
